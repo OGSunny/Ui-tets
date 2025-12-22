@@ -1661,6 +1661,1893 @@ function Slider:Create()
         end
     end)
     
+        -- Hover effects (continued)
+    inputButton.MouseEnter:Connect(function()
+        Utility.Tween(self.Container:FindFirstChild("Stroke"), {Color = theme.BorderLight}, AnimConfig.Hover)
+        Utility.Tween(self.Handle, {BackgroundColor3 = theme.AccentLight}, AnimConfig.Hover)
+    end)
+    
+    inputButton.MouseLeave:Connect(function()
+        if not self.Dragging then
+            Utility.Tween(self.Container:FindFirstChild("Stroke"), {Color = theme.Border}, AnimConfig.Hover)
+            Utility.Tween(self.Handle, {BackgroundColor3 = theme.Text}, AnimConfig.Hover)
+        end
+    end)
+end
+
+function Slider:Set(value)
+    value = Utility.Clamp(value, self.Min, self.Max)
+    value = Utility.Round(value, self.Increment)
+    self.Value = value
+    
+    local percent = (self.Value - self.Min) / (self.Max - self.Min)
+    
+    Utility.Tween(self.Fill, {Size = UDim2.new(percent, 0, 1, 0)}, AnimConfig.Fast)
+    Utility.Tween(self.Handle, {Position = UDim2.new(percent, -10, 0.5, -10)}, AnimConfig.Fast)
+    self.ValueLabel.Text = tostring(self.Value) .. self.Suffix
+    
+    task.spawn(function()
+        pcall(self.Callback, self.Value)
+    end)
+    
+    return self
+end
+
+function Slider:Get()
+    return self.Value
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- DROPDOWN ELEMENT
+-- ═══════════════════════════════════════════════════════════════════════════════
+local Dropdown = {}
+Dropdown.__index = Dropdown
+
+function Dropdown.new(section, options)
+    local self = setmetatable({}, Dropdown)
+    
+    self.Section = section
+    self.Title = options.Title or "Dropdown"
+    self.Description = options.Description
+    self.Values = options.Values or {}
+    self.Default = options.Default
+    self.MultiSelect = options.MultiSelect or false
+    self.Searchable = options.Searchable or false
+    self.Callback = options.Callback or function() end
+    self.Flag = options.Flag
+    self.Opened = false
+    
+    if self.MultiSelect then
+        self.Selected = options.Default or {}
+    else
+        self.Selected = options.Default or (self.Values[1] or "")
+    end
+    
+    self:Create()
+    
+    if self.Flag then
+        UltraUI.Flags[self.Flag] = self
+    end
+    
+    return self
+end
+
+function Dropdown:Create()
+    local theme = UltraUI.Theme
+    local hasDescription = self.Description and self.Description ~= ""
+    local headerHeight = hasDescription and 52 or Sizes.ElementHeight
+    
+    self.Container = Utility.Create("Frame", {
+        Name = "Dropdown_" .. self.Title,
+        BackgroundColor3 = theme.BackgroundTertiary,
+        Size = UDim2.new(1, 0, 0, headerHeight),
+        ClipsDescendants = true,
+        Parent = self.Section.Content
+    }, {
+        Utility.Create("UICorner", {CornerRadius = Sizes.CornerMedium}),
+        Utility.Create("UIStroke", {
+            Name = "Stroke",
+            Color = theme.Border,
+            Thickness = Sizes.StrokeThin
+        })
+    })
+    
+    -- Header
+    self.Header = Utility.Create("Frame", {
+        Name = "Header",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, headerHeight),
+        Parent = self.Container
+    }, {
+        Utility.Create("UIPadding", {
+            PaddingLeft = UDim.new(0, 14),
+            PaddingRight = UDim.new(0, 14)
+        })
+    })
+    
+    -- Title
+    self.Label = Utility.Create("TextLabel", {
+        Name = "Label",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 0, 0, hasDescription and 8 or 0),
+        Size = UDim2.new(0.5, 0, 0, hasDescription and 18 or headerHeight),
+        Font = theme.Font,
+        Text = self.Title,
+        TextColor3 = theme.Text,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = self.Header
+    })
+    
+    -- Description
+    if hasDescription then
+        Utility.Create("TextLabel", {
+            Name = "Description",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 0, 0, 28),
+            Size = UDim2.new(0.5, 0, 0, 16),
+            Font = theme.FontSecondary,
+            Text = self.Description,
+            TextColor3 = theme.TextMuted,
+            TextSize = 12,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = self.Header
+        })
+    end
+    
+    -- Selected value display
+    local displayText = self.MultiSelect and (#self.Selected > 0 and table.concat(self.Selected, ", ") or "None selected") or self.Selected
+    self.ValueLabel = Utility.Create("TextLabel", {
+        Name = "Value",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0.5, 0, 0, hasDescription and 8 or 0),
+        Size = UDim2.new(0.4, -30, 0, hasDescription and 18 or headerHeight),
+        Font = theme.FontSecondary,
+        Text = displayText,
+        TextColor3 = theme.Accent,
+        TextSize = 13,
+        TextXAlignment = Enum.TextXAlignment.Right,
+        TextTruncate = Enum.TextTruncate.AtEnd,
+        Parent = self.Header
+    })
+    
+    -- Arrow icon
+    self.Arrow = Utility.Create("ImageLabel", {
+        Name = "Arrow",
+        BackgroundTransparency = 1,
+        Image = Assets.Icons.ArrowDown,
+        ImageColor3 = theme.TextMuted,
+        ImageRectOffset = Assets.IconRects.ArrowDown.Offset,
+        ImageRectSize = Assets.IconRects.ArrowDown.Size,
+        Position = UDim2.new(1, -20, 0.5, -8),
+        Size = UDim2.fromOffset(16, 16),
+        Rotation = 0,
+        Parent = self.Header
+    })
+    
+    -- Options container
+    self.OptionsContainer = Utility.Create("Frame", {
+        Name = "Options",
+        BackgroundColor3 = theme.BackgroundSecondary,
+        Position = UDim2.new(0, 0, 0, headerHeight),
+        Size = UDim2.new(1, 0, 0, 0),
+        ClipsDescendants = true,
+        Parent = self.Container
+    }, {
+        Utility.Create("UIPadding", {
+            PaddingLeft = UDim.new(0, 6),
+            PaddingRight = UDim.new(0, 6),
+            PaddingTop = UDim.new(0, 6),
+            PaddingBottom = UDim.new(0, 6)
+        }),
+        Utility.Create("UIListLayout", {
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            Padding = UDim.new(0, 4)
+        })
+    })
+    
+    -- Search bar (if searchable)
+    if self.Searchable then
+        self.SearchFrame = Utility.Create("Frame", {
+            Name = "SearchFrame",
+            BackgroundColor3 = theme.BackgroundTertiary,
+            Size = UDim2.new(1, 0, 0, 32),
+            LayoutOrder = -1,
+            Parent = self.OptionsContainer
+        }, {
+            Utility.Create("UICorner", {CornerRadius = Sizes.CornerSmall}),
+            Utility.Create("UIPadding", {
+                PaddingLeft = UDim.new(0, 10),
+                PaddingRight = UDim.new(0, 10)
+            })
+        })
+        
+        -- Search icon
+        Utility.Create("ImageLabel", {
+            Name = "SearchIcon",
+            BackgroundTransparency = 1,
+            Image = Assets.Icons.Search,
+            ImageColor3 = theme.TextMuted,
+            ImageRectOffset = Assets.IconRects.Search.Offset,
+            ImageRectSize = Assets.IconRects.Search.Size,
+            Position = UDim2.new(0, 0, 0.5, -8),
+            Size = UDim2.fromOffset(16, 16),
+            Parent = self.SearchFrame
+        })
+        
+        self.SearchBox = Utility.Create("TextBox", {
+            Name = "SearchBox",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 24, 0, 0),
+            Size = UDim2.new(1, -24, 1, 0),
+            Font = theme.FontSecondary,
+            Text = "",
+            PlaceholderText = "Search...",
+            PlaceholderColor3 = theme.TextMuted,
+            TextColor3 = theme.Text,
+            TextSize = 13,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            ClearTextOnFocus = false,
+            Parent = self.SearchFrame
+        })
+        
+        self.SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
+            self:FilterOptions(self.SearchBox.Text)
+        end)
+    end
+    
+    -- Create options
+    self:RefreshOptions()
+    
+    -- Header click
+    local headerButton = Utility.Create("TextButton", {
+        Name = "HeaderButton",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, 0),
+        Text = "",
+        Parent = self.Header
+    })
+    
+    headerButton.MouseButton1Click:Connect(function()
+        Utility.PlaySound(Assets.Sounds.Click)
+        self:Toggle()
+    end)
+    
+    -- Hover effects
+    headerButton.MouseEnter:Connect(function()
+        Utility.Tween(self.Container:FindFirstChild("Stroke"), {Color = theme.BorderLight}, AnimConfig.Hover)
+        Utility.Tween(self.Arrow, {ImageColor3 = theme.Accent}, AnimConfig.Hover)
+    end)
+    
+    headerButton.MouseLeave:Connect(function()
+        Utility.Tween(self.Container:FindFirstChild("Stroke"), {Color = theme.Border}, AnimConfig.Hover)
+        Utility.Tween(self.Arrow, {ImageColor3 = theme.TextMuted}, AnimConfig.Hover)
+    end)
+end
+
+function Dropdown:RefreshOptions(filter)
+    local theme = UltraUI.Theme
+    
+    -- Clear existing options (keep search frame if exists)
+    for _, child in ipairs(self.OptionsContainer:GetChildren()) do
+        if child:IsA("TextButton") then
+            child:Destroy()
+        end
+    end
+    
+    -- Create options
+    for i, value in ipairs(self.Values) do
+        -- Filter check
+        if filter and filter ~= "" then
+            if not string.find(string.lower(value), string.lower(filter)) then
+                continue
+            end
+        end
+        
+        local isSelected = false
+        if self.MultiSelect then
+            isSelected = table.find(self.Selected, value) ~= nil
+        else
+            isSelected = self.Selected == value
+        end
+        
+        local option = Utility.Create("TextButton", {
+            Name = "Option_" .. value,
+            BackgroundColor3 = isSelected and theme.Accent or theme.BackgroundTertiary,
+            Size = UDim2.new(1, 0, 0, 32),
+            Font = theme.FontSecondary,
+            Text = "",
+            LayoutOrder = i,
+            AutoButtonColor = false,
+            Parent = self.OptionsContainer
+        }, {
+            Utility.Create("UICorner", {CornerRadius = Sizes.CornerSmall})
+        })
+        
+        -- Option content
+        local optionPadding = Utility.Create("UIPadding", {
+            PaddingLeft = UDim.new(0, 12),
+            PaddingRight = UDim.new(0, 12),
+            Parent = option
+        })
+        
+        -- Checkbox for multi-select
+        if self.MultiSelect then
+            local checkbox = Utility.Create("Frame", {
+                Name = "Checkbox",
+                BackgroundColor3 = isSelected and theme.Accent or theme.Border,
+                Position = UDim2.new(0, 0, 0.5, -8),
+                Size = UDim2.fromOffset(16, 16),
+                Parent = option
+            }, {
+                Utility.Create("UICorner", {CornerRadius = Sizes.CornerSmall})
+            })
+            
+            if isSelected then
+                Utility.Create("ImageLabel", {
+                    Name = "Check",
+                    BackgroundTransparency = 1,
+                    Image = Assets.Icons.Check,
+                    ImageColor3 = theme.Background,
+                    ImageRectOffset = Assets.IconRects.Check.Offset,
+                    ImageRectSize = Assets.IconRects.Check.Size,
+                    Position = UDim2.new(0.5, 0, 0.5, 0),
+                    Size = UDim2.fromOffset(12, 12),
+                    AnchorPoint = Vector2.new(0.5, 0.5),
+                    Parent = checkbox
+                })
+            end
+        end
+        
+        -- Option text
+        local textOffset = self.MultiSelect and 26 or 0
+        Utility.Create("TextLabel", {
+            Name = "Text",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, textOffset, 0, 0),
+            Size = UDim2.new(1, -textOffset - (isSelected and 20 or 0), 1, 0),
+            Font = theme.FontSecondary,
+            Text = value,
+            TextColor3 = isSelected and (self.MultiSelect and theme.Text or theme.Background) or theme.Text,
+            TextSize = 13,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = option
+        })
+        
+        -- Selected indicator (for single select)
+        if not self.MultiSelect and isSelected then
+            Utility.Create("ImageLabel", {
+                Name = "SelectedIcon",
+                BackgroundTransparency = 1,
+                Image = Assets.Icons.Check,
+                ImageColor3 = theme.Background,
+                ImageRectOffset = Assets.IconRects.Check.Offset,
+                ImageRectSize = Assets.IconRects.Check.Size,
+                Position = UDim2.new(1, -16, 0.5, -8),
+                Size = UDim2.fromOffset(16, 16),
+                Parent = option
+            })
+        end
+        
+        -- Option click
+        option.MouseButton1Click:Connect(function()
+            Utility.PlaySound(Assets.Sounds.Click)
+            self:SelectOption(value)
+        end)
+        
+        -- Hover effects
+        option.MouseEnter:Connect(function()
+            local currentSelected = (self.MultiSelect and table.find(self.Selected, value)) or (not self.MultiSelect and self.Selected == value)
+            if not currentSelected then
+                Utility.Tween(option, {BackgroundColor3 = theme.BorderLight}, AnimConfig.Hover)
+            end
+        end)
+        
+        option.MouseLeave:Connect(function()
+            local currentSelected = (self.MultiSelect and table.find(self.Selected, value)) or (not self.MultiSelect and self.Selected == value)
+            if not currentSelected then
+                Utility.Tween(option, {BackgroundColor3 = theme.BackgroundTertiary}, AnimConfig.Hover)
+            end
+        end)
+    end
+end
+
+function Dropdown:FilterOptions(filter)
+    self:RefreshOptions(filter)
+    self:UpdateSize()
+end
+
+function Dropdown:SelectOption(value)
+    local theme = UltraUI.Theme
+    
+    if self.MultiSelect then
+        local index = table.find(self.Selected, value)
+        if index then
+            table.remove(self.Selected, index)
+        else
+            table.insert(self.Selected, value)
+        end
+    else
+        self.Selected = value
+        self:Toggle() -- Close on single select
+    end
+    
+    -- Update display
+    local displayText = self.MultiSelect and (#self.Selected > 0 and table.concat(self.Selected, ", ") or "None selected") or self.Selected
+    self.ValueLabel.Text = displayText
+    
+    -- Refresh options
+    self:RefreshOptions(self.SearchBox and self.SearchBox.Text or nil)
+    
+    -- Callback
+    task.spawn(function()
+        pcall(self.Callback, self.Selected)
+    end)
+end
+
+function Dropdown:Toggle()
+    local theme = UltraUI.Theme
+    self.Opened = not self.Opened
+    
+    -- Calculate options height
+    local visibleOptions = 0
+    for _, child in ipairs(self.OptionsContainer:GetChildren()) do
+        if child:IsA("TextButton") or (child.Name == "SearchFrame") then
+            visibleOptions = visibleOptions + 1
+        end
+    end
+    
+    local optionsHeight = math.min(visibleOptions * 36 + 12, 200) -- Max height 200
+    local hasDescription = self.Description and self.Description ~= ""
+    local headerHeight = hasDescription and 52 or Sizes.ElementHeight
+    local totalHeight = self.Opened and (headerHeight + optionsHeight) or headerHeight
+    
+    -- Animate
+    Utility.Tween(self.Container, {Size = UDim2.new(1, 0, 0, totalHeight)}, AnimConfig.Dropdown)
+    Utility.Tween(self.OptionsContainer, {Size = UDim2.new(1, 0, 0, self.Opened and optionsHeight or 0)}, AnimConfig.Dropdown)
+    Utility.Tween(self.Arrow, {Rotation = self.Opened and 180 or 0}, AnimConfig.Dropdown)
+    
+    -- Border color
+    Utility.Tween(self.Container:FindFirstChild("Stroke"), {
+        Color = self.Opened and theme.Accent or theme.Border
+    }, AnimConfig.Dropdown)
+end
+
+function Dropdown:UpdateSize()
+    if not self.Opened then return end
+    
+    local visibleOptions = 0
+    for _, child in ipairs(self.OptionsContainer:GetChildren()) do
+        if child:IsA("TextButton") or (child.Name == "SearchFrame") then
+            visibleOptions = visibleOptions + 1
+        end
+    end
+    
+    local optionsHeight = math.min(visibleOptions * 36 + 12, 200)
+    local hasDescription = self.Description and self.Description ~= ""
+    local headerHeight = hasDescription and 52 or Sizes.ElementHeight
+    local totalHeight = headerHeight + optionsHeight
+    
+    Utility.Tween(self.Container, {Size = UDim2.new(1, 0, 0, totalHeight)}, AnimConfig.Fast)
+    Utility.Tween(self.OptionsContainer, {Size = UDim2.new(1, 0, 0, optionsHeight)}, AnimConfig.Fast)
+end
+
+function Dropdown:Set(value)
+    if self.MultiSelect then
+        if type(value) == "table" then
+            self.Selected = value
+        end
+    else
+        if table.find(self.Values, value) then
+            self.Selected = value
+        end
+    end
+    
+    local displayText = self.MultiSelect and (#self.Selected > 0 and table.concat(self.Selected, ", ") or "None selected") or self.Selected
+    self.ValueLabel.Text = displayText
+    
+    self:RefreshOptions()
+    task.spawn(function() pcall(self.Callback, self.Selected) end)
+    
+    return self
+end
+
+function Dropdown:Get()
+    return self.Selected
+end
+
+function Dropdown:SetValues(values)
+    self.Values = values
+    self:RefreshOptions()
+    return self
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- INPUT ELEMENT
+-- ═══════════════════════════════════════════════════════════════════════════════
+local Input = {}
+Input.__index = Input
+
+function Input.new(section, options)
+    local self = setmetatable({}, Input)
+    
+    self.Section = section
+    self.Title = options.Title or "Input"
+    self.Description = options.Description
+    self.Placeholder = options.Placeholder or "Enter text..."
+    self.Default = options.Default or ""
+    self.CharLimit = options.CharLimit
+    self.NumericOnly = options.NumericOnly or false
+    self.Callback = options.Callback or function() end
+    self.Flag = options.Flag
+    self.Value = self.Default
+    
+    self:Create()
+    
+    if self.Flag then
+        UltraUI.Flags[self.Flag] = self
+    end
+    
+    return self
+end
+
+function Input:Create()
+    local theme = UltraUI.Theme
+    local hasDescription = self.Description and self.Description ~= ""
+    local height = hasDescription and 80 or 68
+    
+    self.Container = Utility.Create("Frame", {
+        Name = "Input_" .. self.Title,
+        BackgroundColor3 = theme.BackgroundTertiary,
+        Size = UDim2.new(1, 0, 0, height),
+        Parent = self.Section.Content
+    }, {
+        Utility.Create("UICorner", {CornerRadius = Sizes.CornerMedium}),
+        Utility.Create("UIStroke", {
+            Name = "Stroke",
+            Color = theme.Border,
+            Thickness = Sizes.StrokeThin
+        }),
+        Utility.Create("UIPadding", {
+            PaddingLeft = UDim.new(0, 14),
+            PaddingRight = UDim.new(0, 14),
+            PaddingTop = UDim.new(0, 10),
+            PaddingBottom = UDim.new(0, 10)
+        })
+    })
+    
+    -- Title
+    self.Label = Utility.Create("TextLabel", {
+        Name = "Label",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, 18),
+        Font = theme.Font,
+        Text = self.Title,
+        TextColor3 = theme.Text,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = self.Container
+    })
+    
+    -- Description
+    local inputY = 24
+    if hasDescription then
+        Utility.Create("TextLabel", {
+            Name = "Description",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 0, 0, 20),
+            Size = UDim2.new(1, 0, 0, 14),
+            Font = theme.FontSecondary,
+            Text = self.Description,
+            TextColor3 = theme.TextMuted,
+            TextSize = 12,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = self.Container
+        })
+        inputY = 38
+    end
+    
+    -- Input frame
+    self.InputFrame = Utility.Create("Frame", {
+        Name = "InputFrame",
+        BackgroundColor3 = theme.BackgroundSecondary,
+        Position = UDim2.new(0, 0, 0, inputY),
+        Size = UDim2.new(1, 0, 0, 30),
+        Parent = self.Container
+    }, {
+        Utility.Create("UICorner", {CornerRadius = Sizes.CornerSmall}),
+        Utility.Create("UIStroke", {
+            Name = "InputStroke",
+            Color = theme.Border,
+            Thickness = Sizes.StrokeThin
+        }),
+        Utility.Create("UIPadding", {
+            PaddingLeft = UDim.new(0, 12),
+            PaddingRight = UDim.new(0, 12)
+        })
+    })
+    
+    -- Text box
+    self.TextBox = Utility.Create("TextBox", {
+        Name = "TextBox",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, self.CharLimit and -40 or 0, 1, 0),
+        Font = theme.FontSecondary,
+        Text = self.Value,
+        PlaceholderText = self.Placeholder,
+        PlaceholderColor3 = theme.TextMuted,
+        TextColor3 = theme.Text,
+        TextSize = 13,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ClearTextOnFocus = false,
+        Parent = self.InputFrame
+    })
+    
+    -- Character counter
+    if self.CharLimit then
+        self.CharCounter = Utility.Create("TextLabel", {
+            Name = "CharCounter",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(1, -35, 0, 0),
+            Size = UDim2.new(0, 35, 1, 0),
+            Font = theme.FontSecondary,
+            Text = #self.Value .. "/" .. self.CharLimit,
+            TextColor3 = theme.TextMuted,
+            TextSize = 11,
+            TextXAlignment = Enum.TextXAlignment.Right,
+            Parent = self.InputFrame
+        })
+    end
+    
+    -- Clear button
+    self.ClearButton = Utility.Create("TextButton", {
+        Name = "ClearButton",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(1, -20, 0.5, -8),
+        Size = UDim2.fromOffset(16, 16),
+        Text = "×",
+        TextColor3 = theme.TextMuted,
+        TextSize = 16,
+        Font = theme.Font,
+        Visible = #self.Value > 0,
+        Parent = self.InputFrame
+    })
+    
+    -- Events
+    local inputStroke = self.InputFrame:FindFirstChild("InputStroke")
+    
+    self.TextBox.Focused:Connect(function()
+        Utility.Tween(inputStroke, {Color = theme.Accent}, AnimConfig.Fast)
+        Utility.Tween(self.InputFrame, {BackgroundColor3 = Utility.Lighten(theme.BackgroundSecondary, 0.02)}, AnimConfig.Fast)
+        self.ClearButton.Visible = true
+    end)
+    
+    self.TextBox.FocusLost:Connect(function(enterPressed)
+        Utility.Tween(inputStroke, {Color = theme.Border}, AnimConfig.Fast)
+        Utility.Tween(self.InputFrame, {BackgroundColor3 = theme.BackgroundSecondary}, AnimConfig.Fast)
+        
+        self.Value = self.TextBox.Text
+        self.ClearButton.Visible = #self.Value > 0
+        
+        task.spawn(function()
+            pcall(self.Callback, self.Value, enterPressed)
+        end)
+    end)
+    
+    self.TextBox:GetPropertyChangedSignal("Text"):Connect(function()
+        local text = self.TextBox.Text
+        
+        -- Numeric only filter
+        if self.NumericOnly then
+            text = text:gsub("[^%d%.%-]", "")
+            self.TextBox.Text = text
+        end
+        
+        -- Character limit
+        if self.CharLimit and #text > self.CharLimit then
+            self.TextBox.Text = text:sub(1, self.CharLimit)
+            text = self.TextBox.Text
+        end
+        
+        -- Update counter
+        if self.CharCounter then
+            self.CharCounter.Text = #text .. "/" .. self.CharLimit
+            self.CharCounter.TextColor3 = #text >= self.CharLimit and theme.Error or theme.TextMuted
+        end
+        
+        self.ClearButton.Visible = #text > 0
+    end)
+    
+    self.ClearButton.MouseButton1Click:Connect(function()
+        self.TextBox.Text = ""
+        self.Value = ""
+        self.TextBox:CaptureFocus()
+    end)
+    
+    self.ClearButton.MouseEnter:Connect(function()
+        Utility.Tween(self.ClearButton, {TextColor3 = theme.Error}, AnimConfig.Fast)
+    end)
+    
+    self.ClearButton.MouseLeave:Connect(function()
+        Utility.Tween(self.ClearButton, {TextColor3 = theme.TextMuted}, AnimConfig.Fast)
+    end)
+end
+
+function Input:Set(value)
+    self.Value = tostring(value)
+    self.TextBox.Text = self.Value
+    task.spawn(function() pcall(self.Callback, self.Value) end)
+    return self
+end
+
+function Input:Get()
+    return self.Value
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- KEYBIND ELEMENT
+-- ═══════════════════════════════════════════════════════════════════════════════
+local Keybind = {}
+Keybind.__index = Keybind
+
+function Keybind.new(section, options)
+    local self = setmetatable({}, Keybind)
+    
+    self.Section = section
+    self.Title = options.Title or "Keybind"
+    self.Description = options.Description
+    self.Default = options.Default or Enum.KeyCode.Unknown
+    self.Callback = options.Callback or function() end
+    self.ChangedCallback = options.ChangedCallback or function() end
+    self.Flag = options.Flag
+    self.Key = self.Default
+    self.Listening = false
+    
+    self:Create()
+    self:SetupListener()
+    
+    if self.Flag then
+        UltraUI.Flags[self.Flag] = self
+    end
+    
+    return self
+end
+
+function Keybind:Create()
+    local theme = UltraUI.Theme
+    local hasDescription = self.Description and self.Description ~= ""
+    local height = hasDescription and 52 or Sizes.ElementHeight
+    
+    self.Container = Utility.Create("Frame", {
+        Name = "Keybind_" .. self.Title,
+        BackgroundColor3 = theme.BackgroundTertiary,
+        Size = UDim2.new(1, 0, 0, height),
+        Parent = self.Section.Content
+    }, {
+        Utility.Create("UICorner", {CornerRadius = Sizes.CornerMedium}),
+        Utility.Create("UIStroke", {
+            Name = "Stroke",
+            Color = theme.Border,
+            Thickness = Sizes.StrokeThin
+        }),
+        Utility.Create("UIPadding", {
+            PaddingLeft = UDim.new(0, 14),
+            PaddingRight = UDim.new(0, 14)
+        })
+    })
+    
+    -- Title
+    self.Label = Utility.Create("TextLabel", {
+        Name = "Label",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 0, 0, hasDescription and 8 or 0),
+        Size = UDim2.new(1, -90, 0, hasDescription and 18 or height),
+        Font = theme.Font,
+        Text = self.Title,
+        TextColor3 = theme.Text,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = self.Container
+    })
+    
+    -- Description
+    if hasDescription then
+        Utility.Create("TextLabel", {
+            Name = "Description",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 0, 0, 28),
+            Size = UDim2.new(1, -90, 0, 16),
+            Font = theme.FontSecondary,
+            Text = self.Description,
+            TextColor3 = theme.TextMuted,
+            TextSize = 12,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = self.Container
+        })
+    end
+    
+    -- Key button
+    self.KeyButton = Utility.Create("TextButton", {
+        Name = "KeyButton",
+        BackgroundColor3 = theme.BackgroundSecondary,
+        Position = UDim2.new(1, -80, 0.5, -14),
+        Size = UDim2.new(0, 80, 0, 28),
+        Font = theme.Font,
+        Text = self:GetKeyName(),
+        TextColor3 = theme.Accent,
+        TextSize = 12,
+        AutoButtonColor = false,
+        Parent = self.Container
+    }, {
+        Utility.Create("UICorner", {CornerRadius = Sizes.CornerSmall}),
+        Utility.Create("UIStroke", {
+            Name = "KeyStroke",
+            Color = theme.Border,
+            Thickness = Sizes.StrokeThin
+        })
+    })
+    
+    -- Keyboard icon
+    Utility.Create("ImageLabel", {
+        Name = "KeyIcon",
+        BackgroundTransparency = 1,
+        Image = Assets.Icons.Settings,
+        ImageColor3 = theme.TextMuted,
+        ImageRectOffset = Assets.IconRects.Settings.Offset,
+        ImageRectSize = Assets.IconRects.Settings.Size,
+        Position = UDim2.new(0, 6, 0.5, -6),
+        Size = UDim2.fromOffset(12, 12),
+        Parent = self.KeyButton
+    })
+    
+    -- Events
+    self.KeyButton.MouseButton1Click:Connect(function()
+        Utility.PlaySound(Assets.Sounds.Click)
+        self:StartListening()
+    end)
+    
+    self.KeyButton.MouseEnter:Connect(function()
+        if not self.Listening then
+            Utility.Tween(self.KeyButton, {BackgroundColor3 = theme.BorderLight}, AnimConfig.Hover)
+        end
+    end)
+    
+    self.KeyButton.MouseLeave:Connect(function()
+        if not self.Listening then
+            Utility.Tween(self.KeyButton, {BackgroundColor3 = theme.BackgroundSecondary}, AnimConfig.Hover)
+        end
+    end)
+end
+
+function Keybind:GetKeyName()
+    if self.Key == Enum.KeyCode.Unknown then
+        return "None"
+    end
+    
+    local shortcuts = {
+        LeftShift = "LShift", RightShift = "RShift",
+        LeftControl = "LCtrl", RightControl = "RCtrl",
+        LeftAlt = "LAlt", RightAlt = "RAlt",
+        Backspace = "Back", CapsLock = "Caps",
+        Return = "Enter", Escape = "Esc",
+        LeftBracket = "[", RightBracket = "]",
+        Semicolon = ";", Quote = "'",
+        BackSlash = "\\", Comma = ",",
+        Period = ".", Slash = "/",
+        Minus = "-", Equals = "=",
+        Backquote = "`", Space = "Space"
+    }
+    
+    return shortcuts[self.Key.Name] or self.Key.Name
+end
+
+function Keybind:StartListening()
+    local theme = UltraUI.Theme
+    self.Listening = true
+    self.KeyButton.Text = "..."
+    
+    Utility.Tween(self.KeyButton, {BackgroundColor3 = theme.Accent}, AnimConfig.Fast)
+    Utility.Tween(self.KeyButton:FindFirstChild("KeyStroke"), {Color = theme.AccentDark}, AnimConfig.Fast)
+    self.KeyButton.TextColor3 = theme.Background
+end
+
+function Keybind:StopListening(newKey)
+    local theme = UltraUI.Theme
+    self.Listening = false
+    
+    if newKey then
+        self.Key = newKey
+        task.spawn(function() pcall(self.ChangedCallback, newKey) end)
+    end
+    
+    self.KeyButton.Text = self:GetKeyName()
+    
+    Utility.Tween(self.KeyButton, {BackgroundColor3 = theme.BackgroundSecondary}, AnimConfig.Fast)
+    Utility.Tween(self.KeyButton:FindFirstChild("KeyStroke"), {Color = theme.Border}, AnimConfig.Fast)
+    self.KeyButton.TextColor3 = theme.Accent
+end
+
+function Keybind:SetupListener()
+    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+        if self.Listening then
+            if input.UserInputType == Enum.UserInputType.Keyboard then
+                if input.KeyCode == Enum.KeyCode.Escape then
+                    Utility.PlaySound(Assets.Sounds.Error)
+                    self:StopListening()
+                else
+                    Utility.PlaySound(Assets.Sounds.Success)
+                    self:StopListening(input.KeyCode)
+                end
+            end
+            return
+        end
+        
+        if gameProcessed then return end
+        
+        if input.UserInputType == Enum.UserInputType.Keyboard then
+            if input.KeyCode == self.Key then
+                task.spawn(function() pcall(self.Callback, self.Key) end)
+            end
+        end
+    end)
+end
+
+function Keybind:Set(key)
+    self.Key = key
+    self.KeyButton.Text = self:GetKeyName()
+    return self
+end
+
+function Keybind:Get()
+    return self.Key
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- COLOR PICKER ELEMENT
+-- ═══════════════════════════════════════════════════════════════════════════════
+local ColorPicker = {}
+ColorPicker.__index = ColorPicker
+
+function ColorPicker.new(section, options)
+    local self = setmetatable({}, ColorPicker)
+    
+    self.Section = section
+    self.Title = options.Title or "Color Picker"
+    self.Description = options.Description
+    self.Default = options.Default or Color3.fromRGB(255, 255, 255)
+    self.Callback = options.Callback or function() end
+    self.Flag = options.Flag
+    self.Color = self.Default
+    self.Opened = false
+    
+    self:Create()
+    
+    if self.Flag then
+        UltraUI.Flags[self.Flag] = self
+    end
+    
+    return self
+end
+
+function ColorPicker:Create()
+    local theme = UltraUI.Theme
+    local hasDescription = self.Description and self.Description ~= ""
+    local headerHeight = hasDescription and 52 or Sizes.ElementHeight
+    
+    self.Container = Utility.Create("Frame", {
+        Name = "ColorPicker_" .. self.Title,
+        BackgroundColor3 = theme.BackgroundTertiary,
+        Size = UDim2.new(1, 0, 0, headerHeight),
+        ClipsDescendants = true,
+        Parent = self.Section.Content
+    }, {
+        Utility.Create("UICorner", {CornerRadius = Sizes.CornerMedium}),
+        Utility.Create("UIStroke", {
+            Name = "Stroke",
+            Color = theme.Border,
+            Thickness = Sizes.StrokeThin
+        }),
+        Utility.Create("UIPadding", {
+            PaddingLeft = UDim.new(0, 14),
+            PaddingRight = UDim.new(0, 14)
+        })
+    })
+    
+    -- Title
+    self.Label = Utility.Create("TextLabel", {
+        Name = "Label",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 0, 0, hasDescription and 8 or 0),
+        Size = UDim2.new(1, -50, 0, hasDescription and 18 or headerHeight),
+        Font = theme.Font,
+        Text = self.Title,
+        TextColor3 = theme.Text,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = self.Container
+    })
+    
+    -- Description
+    if hasDescription then
+        Utility.Create("TextLabel", {
+            Name = "Description",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 0, 0, 28),
+            Size = UDim2.new(1, -50, 0, 16),
+            Font = theme.FontSecondary,
+            Text = self.Description,
+            TextColor3 = theme.TextMuted,
+            TextSize = 12,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            Parent = self.Container
+        })
+    end
+    
+    -- Color preview
+    self.ColorPreview = Utility.Create("TextButton", {
+        Name = "ColorPreview",
+        BackgroundColor3 = self.Color,
+        Position = UDim2.new(1, -40, 0.5, -12),
+        Size = UDim2.new(0, 40, 0, 24),
+        Text = "",
+        AutoButtonColor = false,
+        Parent = self.Container
+    }, {
+        Utility.Create("UICorner", {CornerRadius = Sizes.CornerSmall}),
+        Utility.Create("UIStroke", {
+            Color = theme.Border,
+            Thickness = Sizes.StrokeThin
+        })
+    })
+    
+    -- Picker panel
+    self.Panel = Utility.Create("Frame", {
+        Name = "Panel",
+        BackgroundColor3 = theme.BackgroundSecondary,
+        Position = UDim2.new(0, -14, 0, headerHeight),
+        Size = UDim2.new(1, 28, 0, 0),
+        ClipsDescendants = true,
+        Parent = self.Container
+    }, {
+        Utility.Create("UICorner", {CornerRadius = Sizes.CornerSmall}),
+        Utility.Create("UIPadding", {
+            PaddingLeft = UDim.new(0, 12),
+            PaddingRight = UDim.new(0, 12),
+            PaddingTop = UDim.new(0, 12),
+            PaddingBottom = UDim.new(0, 12)
+        })
+    })
+    
+    -- RGB Sliders
+    self.RGBSliders = {}
+    local sliders = {
+        {Name = "R", Color = Color3.fromRGB(255, 100, 100), Value = self.Color.R * 255},
+        {Name = "G", Color = Color3.fromRGB(100, 255, 100), Value = self.Color.G * 255},
+        {Name = "B", Color = Color3.fromRGB(100, 100, 255), Value = self.Color.B * 255}
+    }
+    
+    for i, data in ipairs(sliders) do
+        local sliderContainer = Utility.Create("Frame", {
+            Name = data.Name .. "Slider",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 0, 0, (i - 1) * 32),
+            Size = UDim2.new(1, 0, 0, 28),
+            Parent = self.Panel
+        })
+        
+        -- Label
+        Utility.Create("TextLabel", {
+            Name = "Label",
+            BackgroundTransparency = 1,
+            Size = UDim2.new(0, 20, 1, 0),
+            Font = theme.Font,
+            Text = data.Name,
+            TextColor3 = data.Color,
+            TextSize = 13,
+            Parent = sliderContainer
+        })
+        
+        -- Track
+        local track = Utility.Create("Frame", {
+            Name = "Track",
+            BackgroundColor3 = theme.Border,
+            Position = UDim2.new(0, 30, 0.5, -4),
+            Size = UDim2.new(1, -90, 0, 8),
+            Parent = sliderContainer
+        }, {
+            Utility.Create("UICorner", {CornerRadius = UDim.new(1, 0)})
+        })
+        
+        -- Fill
+        local fill = Utility.Create("Frame", {
+            Name = "Fill",
+            BackgroundColor3 = data.Color,
+            Size = UDim2.new(data.Value / 255, 0, 1, 0),
+            Parent = track
+        }, {
+            Utility.Create("UICorner", {CornerRadius = UDim.new(1, 0)})
+        })
+        
+        -- Value label
+        local valueLabel = Utility.Create("TextLabel", {
+            Name = "Value",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(1, -50, 0, 0),
+            Size = UDim2.new(0, 50, 1, 0),
+            Font = theme.Font,
+            Text = tostring(math.floor(data.Value)),
+            TextColor3 = theme.Text,
+            TextSize = 12,
+            TextXAlignment = Enum.TextXAlignment.Right,
+            Parent = sliderContainer
+        })
+        
+        self.RGBSliders[data.Name] = {
+            Track = track,
+            Fill = fill,
+            ValueLabel = valueLabel,
+            Value = data.Value,
+            Color = data.Color
+        }
+        
+        -- Slider interaction
+        local dragging = false
+        local inputBtn = Utility.Create("TextButton", {
+            Name = "Input",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, 30, 0, 0),
+            Size = UDim2.new(1, -90, 1, 0),
+            Text = "",
+            Parent = sliderContainer
+        })
+        
+        local function updateRGBSlider(inputX)
+            local trackPos = track.AbsolutePosition.X
+            local trackSize = track.AbsoluteSize.X
+            local relPos = Utility.Clamp((inputX - trackPos) / trackSize, 0, 1)
+            local value = math.floor(relPos * 255)
+            
+            self.RGBSliders[data.Name].Value = value
+            fill.Size = UDim2.new(value / 255, 0, 1, 0)
+            valueLabel.Text = tostring(value)
+            
+            self:UpdateColor()
+        end
+        
+        inputBtn.MouseButton1Down:Connect(function()
+            dragging = true
+            updateRGBSlider(Utility.GetMousePosition().X)
+        end)
+        
+        UserInputService.InputEnded:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                dragging = false
+            end
+        end)
+        
+        RunService.RenderStepped:Connect(function()
+            if dragging then
+                updateRGBSlider(Utility.GetMousePosition().X)
+            end
+        end)
+    end
+    
+    -- Hex input
+    local hexFrame = Utility.Create("Frame", {
+        Name = "HexFrame",
+        BackgroundColor3 = theme.BackgroundTertiary,
+        Position = UDim2.new(0, 0, 0, 100),
+        Size = UDim2.new(1, 0, 0, 28),
+        Parent = self.Panel
+    }, {
+        Utility.Create("UICorner", {CornerRadius = Sizes.CornerSmall}),
+        Utility.Create("UIPadding", {
+            PaddingLeft = UDim.new(0, 10),
+            PaddingRight = UDim.new(0, 10)
+        })
+    })
+    
+    Utility.Create("TextLabel", {
+        Name = "HashLabel",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(0, 15, 1, 0),
+        Font = theme.Font,
+        Text = "#",
+        TextColor3 = theme.TextMuted,
+        TextSize = 13,
+        Parent = hexFrame
+    })
+    
+    self.HexInput = Utility.Create("TextBox", {
+        Name = "HexInput",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 15, 0, 0),
+        Size = UDim2.new(1, -15, 1, 0),
+        Font = theme.FontMono,
+        Text = self:ColorToHex(self.Color),
+        TextColor3 = theme.Text,
+        TextSize = 13,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ClearTextOnFocus = false,
+        Parent = hexFrame
+    })
+    
+    self.HexInput.FocusLost:Connect(function()
+        local hex = self.HexInput.Text:gsub("#", "")
+        if #hex == 6 then
+            local r = tonumber(hex:sub(1, 2), 16)
+            local g = tonumber(hex:sub(3, 4), 16)
+            local b = tonumber(hex:sub(5, 6), 16)
+            if r and g and b then
+                self:Set(Color3.fromRGB(r, g, b))
+            end
+        end
+        self.HexInput.Text = self:ColorToHex(self.Color)
+    end)
+    
+    -- Toggle panel
+    self.ColorPreview.MouseButton1Click:Connect(function()
+        Utility.PlaySound(Assets.Sounds.Click)
+        self:Toggle()
+    end)
+end
+
+function ColorPicker:ColorToHex(color)
+    return string.format("%02X%02X%02X", 
+        math.floor(color.R * 255), 
+        math.floor(color.G * 255), 
+        math.floor(color.B * 255)
+    )
+end
+
+function ColorPicker:UpdateColor()
+    local r = self.RGBSliders["R"].Value
+    local g = self.RGBSliders["G"].Value
+    local b = self.RGBSliders["B"].Value
+    
+    self.Color = Color3.fromRGB(r, g, b)
+    self.ColorPreview.BackgroundColor3 = self.Color
+    self.HexInput.Text = self:ColorToHex(self.Color)
+    
+    task.spawn(function() pcall(self.Callback, self.Color) end)
+end
+
+function ColorPicker:Toggle()
+    local theme = UltraUI.Theme
+    self.Opened = not self.Opened
+    
+    local hasDescription = self.Description and self.Description ~= ""
+    local headerHeight = hasDescription and 52 or Sizes.ElementHeight
+    local panelHeight = self.Opened and 145 or 0
+    local totalHeight = headerHeight + panelHeight
+    
+    Utility.Tween(self.Container, {Size = UDim2.new(1, 0, 0, totalHeight)}, AnimConfig.Dropdown)
+    Utility.Tween(self.Panel, {Size = UDim2.new(1, 28, 0, panelHeight)}, AnimConfig.Dropdown)
+    Utility.Tween(self.Container:FindFirstChild("Stroke"), {
+        Color = self.Opened and theme.Accent or theme.Border
+    }, AnimConfig.Dropdown)
+end
+
+function ColorPicker:Set(color)
+    self.Color = color
+    self.ColorPreview.BackgroundColor3 = color
+    
+    -- Update sliders
+    self.RGBSliders["R"].Value = math.floor(color.R * 255)
+    self.RGBSliders["G"].Value = math.floor(color.G * 255)
+    self.RGBSliders["B"].Value = math.floor(color.B * 255)
+    
+    for name, slider in pairs(self.RGBSliders) do
+        slider.Fill.Size = UDim2.new(slider.Value / 255, 0, 1, 0)
+        slider.ValueLabel.Text = tostring(slider.Value)
+    end
+    
+    self.HexInput.Text = self:ColorToHex(color)
+    
+    task.spawn(function() pcall(self.Callback, self.Color) end)
+    return self
+end
+
+function ColorPicker:Get()
+    return self.Color
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- LABEL ELEMENT
+-- ═══════════════════════════════════════════════════════════════════════════════
+local Label = {}
+Label.__index = Label
+
+function Label.new(section, options)
+    local self = setmetatable({}, Label)
+    
+    self.Section = section
+    self.Title = options.Title or "Label"
+    self.Description = options.Description
+    self.Icon = options.Icon
+    
+    self:Create()
+    
+    return self
+end
+
+function Label:Create()
+    local theme = UltraUI.Theme
+    local hasDescription = self.Description and self.Description ~= ""
+    local height = hasDescription and 52 or 32
+    
+    self.Container = Utility.Create("Frame", {
+        Name = "Label_" .. self.Title,
+        BackgroundColor3 = theme.BackgroundTertiary,
+        Size = UDim2.new(1, 0, 0, height),
+        Parent = self.Section.Content
+    }, {
+        Utility.Create("UICorner", {CornerRadius = Sizes.CornerMedium}),
+        Utility.Create("UIPadding", {
+            PaddingLeft = UDim.new(0, 14),
+            PaddingRight = UDim.new(0, 14)
+        })
+    })
+    
+    local textOffset = 0
+    
+    -- Icon
+    if self.Icon then
+        local iconData = Assets.IconRects[self.Icon] or {}
+        Utility.Create("ImageLabel", {
+            Name = "Icon",
+            BackgroundTransparency = 1,
+            Image = Assets.Icons[self.Icon] or Assets.Icons.Info,
+            ImageColor3 = theme.Accent,
+            ImageRectOffset = iconData.Offset or Vector2.new(0, 0),
+            ImageRectSize = iconData.Size or Vector2.new(0, 0),
+            Position = UDim2.new(0, 0, 0, hasDescription and 8 or 6),
+            Size = UDim2.fromOffset(20, 20),
+            Parent = self.Container
+        })
+        textOffset = 30
+    end
+    
+    -- Title
+    self.TitleLabel = Utility.Create("TextLabel", {
+        Name = "Title",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, textOffset, 0, hasDescription and 6 or 0),
+        Size = UDim2.new(1, -textOffset, 0, hasDescription and 18 or height),
+        Font = theme.Font,
+        Text = self.Title,
+        TextColor3 = theme.Text,
+        TextSize = 14,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = self.Container
+    })
+    
+    -- Description
+    if hasDescription then
+        self.DescLabel = Utility.Create("TextLabel", {
+            Name = "Description",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0, textOffset, 0, 26),
+            Size = UDim2.new(1, -textOffset, 0, 18),
+            Font = theme.FontSecondary,
+            Text = self.Description,
+            TextColor3 = theme.TextMuted,
+            TextSize = 12,
+            TextXAlignment = Enum.TextXAlignment.Left,
+            TextWrapped = true,
+            Parent = self.Container
+        })
+    end
+end
+
+function Label:Set(title, description)
+    if title then
+        self.Title = title
+        self.TitleLabel.Text = title
+    end
+    if description and self.DescLabel then
+        self.Description = description
+        self.DescLabel.Text = description
+    end
+    return self
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- SEPARATOR ELEMENT
+-- ═══════════════════════════════════════════════════════════════════════════════
+local Separator = {}
+Separator.__index = Separator
+
+function Separator.new(section, options)
+    local self = setmetatable({}, Separator)
+    
+    self.Section = section
+    self.Text = options.Text
+    
+    self:Create()
+    
+    return self
+end
+
+function Separator:Create()
+    local theme = UltraUI.Theme
+    local hasText = self.Text and self.Text ~= ""
+    
+    self.Container = Utility.Create("Frame", {
+        Name = "Separator",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, hasText and 28 or 16),
+        Parent = self.Section.Content
+    })
+    
+    if hasText then
+        Utility.Create("Frame", {
+            Name = "LeftLine",
+            BackgroundColor3 = theme.Border,
+            Position = UDim2.new(0, 0, 0.5, 0),
+            Size = UDim2.new(0.25, -10, 0, 1),
+            Parent = self.Container
+        })
+        
+        Utility.Create("TextLabel", {
+            Name = "Text",
+            BackgroundTransparency = 1,
+            Position = UDim2.new(0.25, 0, 0, 0),
+            Size = UDim2.new(0.5, 0, 1, 0),
+            Font = theme.FontSecondary,
+            Text = self.Text,
+            TextColor3 = theme.TextMuted,
+            TextSize = 12,
+            Parent = self.Container
+        })
+        
+        Utility.Create("Frame", {
+            Name = "RightLine",
+            BackgroundColor3 = theme.Border,
+            Position = UDim2.new(0.75, 10, 0.5, 0),
+            Size = UDim2.new(0.25, -10, 0, 1),
+            Parent = self.Container
+        })
+    else
+        Utility.Create("Frame", {
+            Name = "Line",
+            BackgroundColor3 = theme.Border,
+            Position = UDim2.new(0, 0, 0.5, 0),
+            Size = UDim2.new(1, 0, 0, 1),
+            Parent = self.Container
+        })
+    end
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- SECTION CLASS
+-- ═══════════════════════════════════════════════════════════════════════════════
+local Section = {}
+Section.__index = Section
+
+function Section.new(tab, options)
+    local self = setmetatable({}, Section)
+    
+    self.Tab = tab
+    self.Name = options.Name or "Section"
+    self.Icon = options.Icon
+    self.Opened = options.Opened ~= false
+    self.Elements = {}
+    
+    self:Create()
+    
+    return self
+end
+
+function Section:Create()
+    local theme = UltraUI.Theme
+    
+    self.Container = Utility.Create("Frame", {
+        Name = "Section_" .. self.Name,
+        BackgroundColor3 = theme.BackgroundSecondary,
+        Size = UDim2.new(1, -20, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        Parent = self.Tab.Content
+    }, {
+        Utility.Create("UICorner", {CornerRadius = Sizes.CornerMedium}),
+        Utility.Create("UIStroke", {
+            Color = theme.Border,
+            Thickness = Sizes.StrokeThin
+        }),
+        Utility.Create("UIPadding", {
+            PaddingLeft = UDim.new(0, 12),
+            PaddingRight = UDim.new(0, 12),
+            PaddingTop = UDim.new(0, 12),
+            PaddingBottom = UDim.new(0, 12)
+        })
+    })
+    
+    -- Add glass effect
+    Effects.CreateGlass(self.Container)
+    
+    -- Header
+    self.Header = Utility.Create("Frame", {
+        Name = "Header",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 0, Sizes.SectionHeaderHeight),
+        Parent = self.Container
+    })
+    
+    local titleOffset = 0
+    
+    -- Icon
+    if self.Icon then
+        local iconData = Assets.IconRects[self.Icon] or {}
+        Utility.Create("ImageLabel", {
+            Name = "Icon",
+            BackgroundTransparency = 1,
+            Image = Assets.Icons[self.Icon] or Assets.Icons.Settings,
+            ImageColor3 = theme.Accent,
+            ImageRectOffset = iconData.Offset or Vector2.new(0, 0),
+            ImageRectSize = iconData.Size or Vector2.new(0, 0),
+            Position = UDim2.new(0, 0, 0.5, -10),
+            Size = UDim2.fromOffset(20, 20),
+            Parent = self.Header
+        })
+        titleOffset = 28
+    end
+    
+    -- Title
+    self.TitleLabel = Utility.Create("TextLabel", {
+        Name = "Title",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, titleOffset, 0, 0),
+        Size = UDim2.new(1, -titleOffset - 30, 1, 0),
+        Font = theme.Font,
+        Text = self.Name,
+        TextColor3 = theme.Text,
+        TextSize = 15,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = self.Header
+    })
+    
+    -- Arrow
+    self.Arrow = Utility.Create("ImageLabel", {
+        Name = "Arrow",
+        BackgroundTransparency = 1,
+        Image = Assets.Icons.ArrowDown,
+        ImageColor3 = theme.TextMuted,
+        ImageRectOffset = Assets.IconRects.ArrowDown.Offset,
+        ImageRectSize = Assets.IconRects.ArrowDown.Size,
+        Position = UDim2.new(1, -16, 0.5, -8),
+        Size = UDim2.fromOffset(16, 16),
+        Rotation = self.Opened and 0 or -90,
+        Parent = self.Header
+    })
+    
+    -- Content
+    self.Content = Utility.Create("Frame", {
+        Name = "Content",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 0, 0, Sizes.SectionHeaderHeight),
+        Size = UDim2.new(1, 0, 0, 0),
+        AutomaticSize = Enum.AutomaticSize.Y,
+        ClipsDescendants = true,
+        Visible = self.Opened,
+        Parent = self.Container
+    }, {
+        Utility.Create("UIListLayout", {
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            Padding = UDim.new(0, Sizes.SpacingMedium)
+        })
+    })
+    
+    -- Toggle section
+    local headerButton = Utility.Create("TextButton", {
+        Name = "HeaderButton",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, 0, 1, 0),
+        Text = "",
+        Parent = self.Header
+    })
+    
+    headerButton.MouseButton1Click:Connect(function()
+        Utility.PlaySound(Assets.Sounds.Click)
+        self:Toggle()
+    end)
+    
+    headerButton.MouseEnter:Connect(function()
+        Utility.Tween(self.Arrow, {ImageColor3 = theme.Accent}, AnimConfig.Hover)
+    end)
+    
+    headerButton.MouseLeave:Connect(function()
+        Utility.Tween(self.Arrow, {ImageColor3 = theme.TextMuted}, AnimConfig.Hover)
+    end)
+end
+
+function Section:Toggle()
+    self.Opened = not self.Opened
+    self.Content.Visible = self.Opened
+    Utility.Tween(self.Arrow, {Rotation = self.Opened and 0 or -90}, AnimConfig.Normal)
+end
+
+function Section:AddToggle(options) return Toggle.new(self, options) end
+function Section:AddButton(options) return Button.new(self, options) end
+function Section:AddSlider(options) return Slider.new(self, options) end
+function Section:AddDropdown(options) return Dropdown.new(self, options) end
+function Section:AddInput(options) return Input.new(self, options) end
+function Section:AddKeybind(options) return Keybind.new(self, options) end
+function Section:AddColorPicker(options) return ColorPicker.new(self, options) end
+function Section:AddLabel(options) return Label.new(self, options) end
+function Section:AddSeparator(options) return Separator.new(self, options or {}) end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- TAB CLASS
+-- ═══════════════════════════════════════════════════════════════════════════════
+local Tab = {}
+Tab.__index = Tab
+
+function Tab.new(window, options)
+    local self = setmetatable({}, Tab)
+    
+    self.Window = window
+    self.Name = options.Name or "Tab"
+    self.Icon = options.Icon
+    self.Sections = {}
+    self.Active = false
+    
+    self:Create()
+    
+    return self
+end
+
+function Tab:Create()
+    local theme = UltraUI.Theme
+    
+    -- Tab button
+    self.Button = Utility.Create("TextButton", {
+        Name = "TabButton_" .. self.Name,
+        BackgroundColor3 = theme.BackgroundTertiary,
+        Size = UDim2.new(0, 0, 1, -8),
+        AutomaticSize = Enum.AutomaticSize.X,
+        Font = theme.Font,
+        Text = "",
+        AutoButtonColor = false,
+        Parent = self.Window.TabContainer
+    }, {
+        Utility.Create("UICorner", {CornerRadius = Sizes.CornerSmall}),
+        Utility.Create("UIPadding", {
+            PaddingLeft = UDim.new(0, 14),
+            PaddingRight = UDim.new(0, 14)
+        })
+    })
+    
+    -- Icon
+    local textOffset = 0
+    if self.Icon then
+        local iconData = Assets.IconRects[self.Icon] or {}
+        self.IconImage = Utility.Create("ImageLabel", {
+            Name = "Icon",
+            BackgroundTransparency = 1,
+            Image = Assets.Icons[self.Icon] or Assets.Icons.Settings,
+            ImageColor3 = theme.TextMuted,
+            ImageRectOffset = iconData.Offset or Vector2.new(0, 0),
+            ImageRectSize = iconData.Size or Vector2.new(0, 0),
+            Position = UDim2.new(0, 0, 0.5, -8),
+            Size = UDim2.fromOffset(16, 16),
+            Parent = self.Button
+        })
+        textOffset = 22
+    end
+    
+    -- Tab text
+    self.TextLabel = Utility.Create("TextLabel", {
+        Name = "Text",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, textOffset, 0, 0),
+        Size = UDim2.new(0, 0, 1, 0),
+        AutomaticSize = Enum.AutomaticSize.X,
+        Font = theme.Font,
+        Text = self.Name,
+        TextColor3 = theme.TextMuted,
+        TextSize = 13,
+        Parent = self.Button
+    })
+    
+    -- Tab content
+    self.Content = Utility.Create("ScrollingFrame", {
+        Name = "TabContent_" .. self.Name,
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, 10, 0, 0),
+        Size = UDim2.new(1, -20, 1, 0),
+        CanvasSize = UDim2.new(0, 0, 0, 0),
+        AutomaticCanvasSize = Enum.AutomaticSize.Y,
+        ScrollBarThickness = 4,
+        ScrollBarImageColor3 = theme.Accent,
+        ScrollBarImageTransparency = 0.5,
+        Visible = false,
+        Parent = self.Window.ContentContainer
+    }, {
+        Utility.Create("UIListLayout", {
+            SortOrder = Enum.SortOrder.LayoutOrder,
+            Padding = UDim.new(0, 12),
+            HorizontalAlignment = Enum.HorizontalAlignment.Center
+        }),
+        Utility.Create("UIPadding", {
+            PaddingTop = UDim.new(0, 10),
+            PaddingBottom = UDim.new(0, 10)
+        })
+    })
+    
+    -- Events
+    self.Button.MouseButton1Click:Connect(function()
+        Utility.PlaySound(Assets.Sounds.Click)
+        self.Window:SelectTab(self)
+    end)
+    
+    self.Button.MouseEnter:Connect(function()
+        if not self.Active then
+            Utility.Tween(self.Button, {BackgroundColor3 = theme.BorderLight}, AnimConfig.Hover)
+        end
+    end)
+    
+    self.Button.MouseLeave:Connect(function()
+        if not self.Active then
+            Utility.Tween(self.Button, {BackgroundColor3 = theme.BackgroundTertiary}, AnimConfig.Hover)
+        end
+    end)
+end
+
+function Tab:SetActive(active)
+    local theme = UltraUI.Theme
+    self.Active = active
+    self.Content.Visible = active
+    
+    if active then
+        Utility.Tween(self.Button, {BackgroundColor3 = theme.Accent}, AnimConfig.TabSwitch)
+        Utility.Tween(self.TextLabel, {TextColor3 = theme.Background}, AnimConfig.TabSwitch)
+        if self.IconImage then
+            Utility.Tween(self.IconImage, {ImageColor3 = theme.Background}, AnimConfig.TabSwitch)
+        end
+    else
+        Utility.Tween(self.Button, {BackgroundColor3 = theme.BackgroundTertiary}, AnimConfig.TabSwitch)
+        Utility.Tween(self.TextLabel, {TextColor3 = theme.TextMuted}, AnimConfig.TabSwitch)
+        if self.IconImage then
+            Utility.Tween(self.IconImage, {ImageColor3 = theme.TextMuted}, AnimConfig.TabSwitch)
+        end
+    end
+end
+
+function Tab:AddSection(options)
+    local section = Section.new(self, options)
+    table.insert(self.Sections, section)
+    return section
+end
+
+-- ═══════════════════════════════════════════════════════════════════════════════
+-- WINDOW CLASS
+-- ═══════════════════════════════════════════════════════════════════════════════
+local Window = {}
+Window.__index = Window
+
+function Window.new(library, options)
+    local self = setmetatable({}, Window)
+    
+    self.Library = library
+    self.Title = options.Title or "Ultra UI"
+    self.Subtitle = options.Subtitle
+    self.Size = options.Size or Sizes.WindowDefault
+    self.Position = options.Position or UDim2.new(0.5, -275, 0.5, -325)
+    self.Icon = options.Icon
+    self.Tabs = {}
+    self.ActiveTab = nil
+    self.Minimized = false
+    self.Visible = true
+    
+    self:Create()
+    
+    table.insert(library.Windows, self)
+    
+    return self
+end
+
+function Window:Create()
+    local theme = UltraUI.Theme
+    
+    self.ScreenGui = CreateScreenGui()
+    if not self.ScreenGui then return end
+    
+    -- Main frame
+    self.MainFrame = Utility.Create("Frame", {
+        Name = "MainWindow",
+        BackgroundColor3 = theme.Background,
+        Position = self.Position,
+        Size = self.Size,
+        Parent = self.ScreenGui
+    }, {
+        Utility.Create("UICorner", {CornerRadius = Sizes.CornerLarge}),
+        Utility.Create("UIStroke", {
+            Name = "MainStroke",
+            Color = theme.Border,
+            Thickness = Sizes.StrokeThin
+        })
+    })
+    
+    -- Shadow
+    Effects.CreateShadow(self.MainFrame, 8, 0.6)
+    
+    -- Glow effect
+    self.WindowGlow = Effects.CreateGlow(self.MainFrame, theme.Glow, 0.1)
+    
+    -- Title bar
+    self.TitleBar = Utility.Create("Frame", {
+        Name = "TitleBar",
+        BackgroundColor3 = theme.BackgroundSecondary,
+        Size = UDim2.new(1, 0, 0, 50),
+        Parent = self.MainFrame
+    }, {
+        Utility.Create("UICorner", {CornerRadius = Sizes.CornerLarge})
+    })
+    
+    -- Title bar bottom cover
+    Utility.Create("Frame", {
+        Name = "TitleBarCover",
+        BackgroundColor3 = theme.BackgroundSecondary,
+        Position = UDim2.new(0, 0, 1, -14),
+        Size = UDim2.new(1, 0, 0, 14),
+        Parent = self.TitleBar
+    })
+    
+    -- Decorative accent line
+    self.AccentLine = Utility.Create("Frame", {
+        Name = "AccentLine",
+        BackgroundColor3 = theme.Accent,
+        Position = UDim2.new(0, 20, 1, -2),
+        Size = UDim2.new(0, 100, 0, 2),
+        Parent = self.TitleBar
+    }, {
+        Utility.Create("UICorner", {CornerRadius = UDim.new(1, 0)})
+    })
+    
+    -- Animate accent line
+    task.spawn(function()
+        while self.MainFrame and self.MainFrame.Parent do
+            Utility.Tween(self.AccentLine, {Size = UDim2.new(0, 150, 0, 2)}, 1.5)
+            task.wait(1.5)
+            Utility.Tween(self.AccentLine, {Size = UDim2.new(0, 80, 0, 2)}, 1.5)
+            task.wait(1.5)
+        end
+    end)
+    
+    -- Icon
+    local titleOffset = 20
+    if self.Icon then
+        local iconData = Assets.IconRects[self.Icon] or {}
+        self.IconImage = Utility.Create("ImageLabel", {
+            Name = "Icon",
+            BackgroundTransparency = 1,
+            Image = Assets.Icons[self.Icon] or Assets.Icons.Settings,
+            ImageColor3 = theme.Accent,
+            ImageRectOffset = iconData.Offset or Vector2.new(0, 0),
+            ImageRectSize = iconData.Size or Vector2.new(0, 0),
+            Position = UDim2.new(0, 20, 0, 12),
+            Size = UDim2.fromOffset(26, 26),
+            Parent = self.TitleBar
+        })
+        
+        Effects.CreateGlow(self.IconImage, theme.Accent, 0.3)
+        titleOffset = 56
+    end
+    
+    -- Title
+    Utility.Create("TextLabel", {
+        Name = "Title",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, titleOffset, 0, self.Subtitle and 8 or 0),
+        Size = UDim2.new(1, -titleOffset - 100, 0, self.Subtitle and 22 or 50),
+        Font = theme.Font,
+        Text = self.Title,
+        TextColor3 = theme.Text,
+        TextSize = 18,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = self.TitleBar
+    })
+    
                 -- Subtitle (continued)
             Size = UDim2.new(1, -titleOffset - 100, 0, 16),
             Font = theme.FontSecondary,
