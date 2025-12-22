@@ -3548,16 +3548,21 @@ function Window:Create()
         Parent = self.TitleBar
     })
     
-                -- Subtitle (continued)
-            Size = UDim2.new(1, -titleOffset - 100, 0, 16),
-            Font = theme.FontSecondary,
-            Text = self.Subtitle,
-            TextColor3 = theme.TextMuted,
-            TextSize = 12,
-            TextXAlignment = Enum.TextXAlignment.Left,
-            Parent = self.TitleBar
-        })
-    end
+  -- Subtitle
+if self.Subtitle then
+    Utility.Create("TextLabel", {
+        Name = "Subtitle",
+        BackgroundTransparency = 1,
+        Position = UDim2.new(0, titleOffset, 0, 32),
+        Size = UDim2.new(1, -titleOffset - 100, 0, 16),
+        Font = theme.FontSecondary,
+        Text = self.Subtitle,
+        TextColor3 = theme.TextMuted,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = self.TitleBar
+    })
+end
     
     -- Window controls
     local controlsFrame = Utility.Create("Frame", {
