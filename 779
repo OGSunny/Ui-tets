@@ -1,7 +1,7 @@
 -- ═══════════════════════════════════════════════════════════════════════════════
 -- LOAD THE ULTRA UI LIBRARY
 -- ═══════════════════════════════════════════════════════════════════════════════
-local UltraUI = loadstring(game:HttpGet("https://pastefy.app/0le4IAKF/raw"))()
+local UltraUI = loadstring(game:HttpGet("https://raw.githubusercontent.com/OGSunny/Ui-tets/refs/heads/main/779"))()
 
 -- ═══════════════════════════════════════════════════════════════════════════════
 -- CONFIGURATION (Optional - Set before creating window)
