@@ -33,7 +33,11 @@ local Icons = {
     settings = "rbxassetid://7733954760",
     eye = "rbxassetid://7734056813",
     home = "rbxassetid://7733779610",
-    list = "rbxassetid://7733955511"
+    list = "rbxassetid://7733955511",
+    star = "rbxassetid://7733955511",
+    check = "rbxassetid://7733919105",
+    warning = "rbxassetid://7733919369",
+    info = "rbxassetid://7733911828"
 }
 
 --// Utility Functions
@@ -110,12 +114,21 @@ function Library:Notify(config)
     Create("UIPadding", {Parent = notif, PaddingBottom = UDim.new(0, 15)})
     TweenService:Create(bar, TweenInfo.new(config.Time or 5, Enum.EasingStyle.Linear), {Size = UDim2.new(0, 0, 1, 0)}):Play()
     
-    task.delay(config.Time or 5, function()
+    -- Close Logic
+    local closeBtn = Create("TextButton", {
+        Parent = notif, Text = "×", BackgroundTransparency = 1, TextColor3 = Library.theme.textdark,
+        Position = UDim2.new(1, -25, 0, 5), Size = UDim2.new(0, 20, 0, 20), Font = Enum.Font.GothamBold, TextSize = 18
+    })
+    
+    local function Remove()
         TweenService:Create(notif, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.Out), {BackgroundTransparency = 1}):Play()
         TweenService:Create(title, TweenInfo.new(0.5), {TextTransparency = 1}):Play()
         task.wait(0.5)
         notif:Destroy()
-    end)
+    end
+
+    closeBtn.MouseButton1Click:Connect(Remove)
+    task.delay(config.Time or 5, Remove)
 end
 
 --// Main Window
@@ -134,7 +147,7 @@ function Library:CreateWindow(config)
     
     -- Responsive Scale for Mobile
     if isMobile then
-        Main.Size = UDim2.new(0.9, 0, 0.8, 0)
+        Main.Size = UDim2.new(0.85, 0, 0.75, 0)
         -- Create Mobile Toggle
         local ToggleBtn = Create("ImageButton", {
             Parent = Screen, Name = "MobileToggle", BackgroundColor3 = Library.theme.sec,
@@ -172,7 +185,7 @@ function Library:CreateWindow(config)
     local Minimized = false
     MinBtn.MouseButton1Click:Connect(function()
         Minimized = not Minimized
-        TweenService:Create(Main, TweenInfo.new(0.3), {Size = Minimized and UDim2.new(0, Main.Size.X.Offset, 0, 50) or (isMobile and UDim2.new(0.9, 0, 0.8, 0) or UDim2.new(0, 750, 0, 450))}):Play()
+        TweenService:Create(Main, TweenInfo.new(0.3), {Size = Minimized and UDim2.new(0, Main.Size.X.Offset, 0, 50) or (isMobile and UDim2.new(0.85, 0, 0.75, 0) or UDim2.new(0, 750, 0, 450))}):Play()
         Main.ClipsDescendants = Minimized
     end)
 
@@ -240,9 +253,10 @@ function Library:CreateWindow(config)
                 if v:IsA("TextButton") then 
                     v.TextLabel.TextColor3 = Library.theme.textdark 
                     v.ImageLabel.ImageColor3 = Library.theme.textdark
+                    TweenService:Create(v.TextLabel, TweenInfo.new(0.2), {TextColor3 = Library.theme.textdark}):Play()
                 end 
             end
-            TabBtnTitle.TextColor3 = Library.theme.accent
+            TweenService:Create(TabBtnTitle, TweenInfo.new(0.2), {TextColor3 = Library.theme.accent}):Play()
             TabBtnIcon.ImageColor3 = Library.theme.accent
             TabFrame.Visible = true
         end
@@ -258,7 +272,7 @@ function Library:CreateWindow(config)
             local Section = Create("Frame", {Parent = TabFrame, BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 30)})
             Create("TextLabel", {
                 Parent = Section, Text = sConfig.Name, Font = Enum.Font.GothamBold, TextColor3 = Library.theme.textdark,
-                Size = UDim2.new(1, 0, 1, 0), TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left
+                Size = UDim2.new(1, 0, 1, 0), TextSize = 11, TextXAlignment = Enum.TextXAlignment.Left, Position = UDim2.new(0, 5, 0, 0)
             })
         end
 
@@ -268,6 +282,7 @@ function Library:CreateWindow(config)
                 Parent = TabFrame, BackgroundColor3 = Library.theme.sec, Size = UDim2.new(1, 0, 0, 40)
             })
             Create("UICorner", {Parent = ToggleFrame, CornerRadius = UDim.new(0, 6)})
+            Create("UIStroke", {Parent = ToggleFrame, Color = Library.theme.stroke, Thickness = 1})
             
             Create("TextLabel", {
                 Parent = ToggleFrame, Text = eConfig.Name, Font = Enum.Font.GothamMedium, TextColor3 = Library.theme.text,
@@ -308,6 +323,7 @@ function Library:CreateWindow(config)
                 Parent = TabFrame, BackgroundColor3 = Library.theme.sec, Size = UDim2.new(1, 0, 0, 55)
             })
             Create("UICorner", {Parent = SliderFrame, CornerRadius = UDim.new(0, 6)})
+            Create("UIStroke", {Parent = SliderFrame, Color = Library.theme.stroke, Thickness = 1})
             
             Create("TextLabel", {
                 Parent = SliderFrame, Text = eConfig.Name, Font = Enum.Font.GothamMedium, TextColor3 = Library.theme.text,
@@ -339,6 +355,12 @@ function Library:CreateWindow(config)
                 ValueLabel.Text = tostring(Value)
                 eConfig.Callback(Value)
             end
+            
+            -- Set initial value
+            local initialVal = eConfig.CurrentValue or eConfig.Range[1]
+            local initialScale = (initialVal - eConfig.Range[1]) / (eConfig.Range[2] - eConfig.Range[1])
+            Fill.Size = UDim2.new(initialScale, 0, 1, 0)
+            ValueLabel.Text = tostring(initialVal)
 
             local Dragging = false
             Trigger.InputBegan:Connect(function(i) 
@@ -360,15 +382,23 @@ function Library:CreateWindow(config)
 
         function TabFuncs:CreateButton(eConfig)
             local BtnFrame = Create("TextButton", {
-                Parent = TabFrame, BackgroundColor3 = Library.theme.accent, Size = UDim2.new(1, 0, 0, 35),
-                Text = eConfig.Name, Font = Enum.Font.GothamBold, TextColor3 = Library.theme.main, TextSize = 13, AutoButtonColor = false
+                Parent = TabFrame, BackgroundColor3 = Library.theme.sec, Size = UDim2.new(1, 0, 0, 35),
+                Text = "", AutoButtonColor = false
             })
             Create("UICorner", {Parent = BtnFrame, CornerRadius = UDim.new(0, 6)})
+            Create("UIStroke", {Parent = BtnFrame, Color = Library.theme.stroke, Thickness = 1})
+            
+            local BtnText = Create("TextLabel", {
+                Parent = BtnFrame, Text = eConfig.Name, Font = Enum.Font.GothamBold, TextColor3 = Library.theme.text,
+                Size = UDim2.new(1, 0, 1, 0), TextSize = 13, BackgroundTransparency = 1
+            })
             
             BtnFrame.MouseButton1Click:Connect(function()
-                TweenService:Create(BtnFrame, TweenInfo.new(0.1), {Size = UDim2.new(1, -5, 0, 30)}):Play()
+                TweenService:Create(BtnFrame, TweenInfo.new(0.1), {BackgroundColor3 = Library.theme.accent}):Play()
+                TweenService:Create(BtnText, TweenInfo.new(0.1), {TextColor3 = Library.theme.main}):Play()
                 task.wait(0.1)
-                TweenService:Create(BtnFrame, TweenInfo.new(0.1), {Size = UDim2.new(1, 0, 0, 35)}):Play()
+                TweenService:Create(BtnFrame, TweenInfo.new(0.1), {BackgroundColor3 = Library.theme.sec}):Play()
+                TweenService:Create(BtnText, TweenInfo.new(0.1), {TextColor3 = Library.theme.text}):Play()
                 eConfig.Callback()
             end)
         end
@@ -378,6 +408,7 @@ function Library:CreateWindow(config)
                 Parent = TabFrame, BackgroundColor3 = Library.theme.sec, Size = UDim2.new(1, 0, 0, 40), ClipsDescendants = true
             })
             Create("UICorner", {Parent = DropFrame, CornerRadius = UDim.new(0, 6)})
+            Create("UIStroke", {Parent = DropFrame, Color = Library.theme.stroke, Thickness = 1})
             
             local Label = Create("TextLabel", {
                 Parent = DropFrame, Text = eConfig.Name, Font = Enum.Font.GothamMedium, TextColor3 = Library.theme.text,
@@ -400,7 +431,7 @@ function Library:CreateWindow(config)
             for _, option in pairs(eConfig.Options) do
                 local OptBtn = Create("TextButton", {
                     Parent = DropFrame, BackgroundColor3 = Library.theme.main, Size = UDim2.new(1, -10, 0, 30),
-                    Text = option, Font = Enum.Font.Gotham, TextColor3 = Library.theme.text, TextSize = 12, LayoutOrder = 1
+                    Text = option, Font = Enum.Font.Gotham, TextColor3 = Library.theme.text, TextSize = 12, LayoutOrder = 1, AutoButtonColor = false
                 })
                 Create("UICorner", {Parent = OptBtn, CornerRadius = UDim.new(0, 4)})
                 
@@ -409,7 +440,7 @@ function Library:CreateWindow(config)
                     eConfig.Callback(option)
                     Open = false
                     TweenService:Create(DropFrame, TweenInfo.new(0.2), {Size = UDim2.new(1, 0, 0, 40)}):Play()
-                    Arrow.Text = "▼"
+                    TweenService:Create(Arrow, TweenInfo.new(0.2), {Rotation = 0}):Play()
                 end)
             end
             
@@ -417,7 +448,35 @@ function Library:CreateWindow(config)
                 Open = not Open
                 local Height = Open and (45 + (#eConfig.Options * 32)) or 40
                 TweenService:Create(DropFrame, TweenInfo.new(0.2), {Size = UDim2.new(1, 0, 0, Height)}):Play()
-                Arrow.Text = Open and "▲" or "▼"
+                TweenService:Create(Arrow, TweenInfo.new(0.2), {Rotation = Open and 180 or 0}):Play()
+            end)
+        end
+        
+        function TabFuncs:CreateInput(eConfig)
+            local InputFrame = Create("Frame", {
+                Parent = TabFrame, BackgroundColor3 = Library.theme.sec, Size = UDim2.new(1, 0, 0, 40)
+            })
+            Create("UICorner", {Parent = InputFrame, CornerRadius = UDim.new(0, 6)})
+            Create("UIStroke", {Parent = InputFrame, Color = Library.theme.stroke, Thickness = 1})
+            
+            Create("TextLabel", {
+                Parent = InputFrame, Text = eConfig.Name, Font = Enum.Font.GothamMedium, TextColor3 = Library.theme.text,
+                Size = UDim2.new(1, -110, 0, 40), Position = UDim2.new(0, 10, 0, 0), TextSize = 13, TextXAlignment = Enum.TextXAlignment.Left
+            })
+            
+            local BoxContainer = Create("Frame", {
+                Parent = InputFrame, BackgroundColor3 = Library.theme.main, Size = UDim2.new(0, 100, 0, 30), Position = UDim2.new(1, -105, 0, 5)
+            })
+            Create("UICorner", {Parent = BoxContainer, CornerRadius = UDim.new(0, 4)})
+            
+            local TextBox = Create("TextBox", {
+                Parent = BoxContainer, Size = UDim2.new(1, -10, 1, 0), Position = UDim2.new(0, 5, 0, 0),
+                BackgroundTransparency = 1, Text = "", PlaceholderText = "...", Font = Enum.Font.Gotham,
+                TextColor3 = Library.theme.text, PlaceholderColor3 = Library.theme.textdark, TextSize = 12
+            })
+            
+            TextBox.FocusLost:Connect(function(enter)
+                if enter then eConfig.Callback(TextBox.Text) end
             end)
         end
 
