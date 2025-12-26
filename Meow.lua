@@ -1,20 +1,3 @@
---[[
-    ╔═══════════════════════════════════════════════════════════════╗
-    ║                    STELLAR UI LIBRARY v4.1                    ║
-    ║               Premium Visual Polish Edition                    ║
-    ╚═══════════════════════════════════════════════════════════════╝
-    
-    VISUAL FIXES APPLIED:
-    - Subtle strokes (1px, 0.3 transparency)
-    - Consistent 12px padding
-    - Smooth Back EaseOut animations (0.5s)
-    - Reduced shadow intensity (0.6 transparency)
-    - Faster hover effects (0.15s)
-    - Better background contrast
-    - Polished elements (buttons, sliders, toggles, dropdowns)
-    - Refined animations throughout
-]]
-
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
