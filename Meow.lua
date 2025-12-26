@@ -40,7 +40,8 @@ local Icons = {
     Success = "rbxassetid://3926305904",
     Code = "rbxassetid://3926307971",
     Discord = "rbxassetid://3926307971",
-    Crown = "rbxassetid://3926307971"
+    Crown = "rbxassetid://3926307971",
+    Search = "rbxassetid://3926305904"
 }
 
 local IconRects = {
@@ -66,42 +67,39 @@ local IconRects = {
     Success = Rect.new(644, 204, 688, 248),
     Code = Rect.new(964, 724, 1008, 768),
     Discord = Rect.new(124, 44, 168, 88),
-    Crown = Rect.new(564, 284, 608, 328)
+    Crown = Rect.new(564, 284, 608, 328),
+    Search = Rect.new(924, 284, 968, 328)
 }
 
 local Theme = {
-    Background = Color3.fromRGB(13, 17, 28),
-    Secondary = Color3.fromRGB(19, 24, 40),
-    Tertiary = Color3.fromRGB(26, 33, 54),
-    Elevated = Color3.fromRGB(35, 44, 70),
-    Hover = Color3.fromRGB(42, 53, 82),
-    Active = Color3.fromRGB(50, 62, 95),
+    Background = Color3.fromRGB(14, 18, 30),
+    Secondary = Color3.fromRGB(20, 26, 42),
+    Tertiary = Color3.fromRGB(28, 36, 58),
+    Elevated = Color3.fromRGB(38, 48, 75),
+    Hover = Color3.fromRGB(48, 60, 92),
+    Active = Color3.fromRGB(55, 70, 105),
     
-    Primary = Color3.fromRGB(65, 175, 255),
-    PrimaryDark = Color3.fromRGB(50, 150, 230),
-    PrimaryLight = Color3.fromRGB(100, 195, 255),
+    Primary = Color3.fromRGB(70, 180, 255),
+    PrimaryDark = Color3.fromRGB(55, 155, 235),
+    PrimaryLight = Color3.fromRGB(110, 200, 255),
     
-    Text = Color3.fromRGB(248, 250, 255),
-    TextDark = Color3.fromRGB(175, 185, 205),
-    TextMuted = Color3.fromRGB(110, 125, 155),
+    Text = Color3.fromRGB(250, 252, 255),
+    TextDark = Color3.fromRGB(180, 190, 210),
+    TextMuted = Color3.fromRGB(115, 130, 160),
     
-    Success = Color3.fromRGB(50, 215, 145),
-    Warning = Color3.fromRGB(255, 190, 55),
-    Error = Color3.fromRGB(255, 95, 105),
+    Success = Color3.fromRGB(55, 220, 150),
+    Warning = Color3.fromRGB(255, 195, 60),
+    Error = Color3.fromRGB(255, 100, 110),
     
-    Divider = Color3.fromRGB(50, 62, 90)
+    Divider = Color3.fromRGB(55, 68, 100)
 }
 
 local function Create(class, props)
     local inst = Instance.new(class)
     for k, v in pairs(props) do
-        if k ~= "Parent" then
-            inst[k] = v
-        end
+        if k ~= "Parent" then inst[k] = v end
     end
-    if props.Parent then
-        inst.Parent = props.Parent
-    end
+    if props.Parent then inst.Parent = props.Parent end
     return inst
 end
 
@@ -175,9 +173,9 @@ end
 function Stellar:CreateWindow(config)
     config = config or {}
     local WindowTitle = config.Title or "Stellar Hub"
-    local WindowSubtitle = config.Subtitle or "v5.0"
+    local WindowSubtitle = config.Subtitle or "v5.1"
     local WindowLogo = config.Logo or "rbxassetid://18824089198"
-    local WindowSize = config.Size or UDim2.new(0, 780, 0, 490)
+    local WindowSize = config.Size or UDim2.new(0, 920, 0, 560)
     local ToggleKey = config.ToggleKey or Enum.KeyCode.RightControl
     
     if CoreGui:FindFirstChild("StellarHub") then
@@ -195,6 +193,7 @@ function Stellar:CreateWindow(config)
     local CurrentTab = nil
     local Tabs = {}
     local Pages = {}
+    local AllTabButtons = {}
     
     local MainFrame = Create("Frame", {
         Name = "Main",
@@ -207,7 +206,7 @@ function Stellar:CreateWindow(config)
     })
     Corner(MainFrame, 12)
     
-    Tween(MainFrame, {Size = WindowSize}, 0.4, Enum.EasingStyle.Back)
+    Tween(MainFrame, {Size = WindowSize}, 0.45, Enum.EasingStyle.Back)
     
     local Shadow = Create("ImageLabel", {
         Name = "Shadow",
@@ -217,7 +216,7 @@ function Stellar:CreateWindow(config)
         ImageTransparency = 0.5,
         ScaleType = Enum.ScaleType.Slice,
         SliceCenter = Rect.new(23, 23, 277, 277),
-        Size = UDim2.new(1, 50, 1, 50),
+        Size = UDim2.new(1, 55, 1, 55),
         Position = UDim2.new(0.5, 0, 0.5, 0),
         AnchorPoint = Vector2.new(0.5, 0.5),
         ZIndex = -1,
@@ -227,7 +226,7 @@ function Stellar:CreateWindow(config)
     local Sidebar = Create("Frame", {
         Name = "Sidebar",
         BackgroundColor3 = Theme.Secondary,
-        Size = UDim2.new(0, 190, 1, 0),
+        Size = UDim2.new(0, 210, 1, 0),
         BorderSizePixel = 0,
         Parent = MainFrame
     })
@@ -241,11 +240,11 @@ function Stellar:CreateWindow(config)
         Parent = Sidebar
     })
     
-    local SidebarLine = Create("Frame", {
+    Create("Frame", {
         BackgroundColor3 = Theme.Divider,
         BackgroundTransparency = 0.5,
-        Size = UDim2.new(0, 1, 1, -24),
-        Position = UDim2.new(1, 0, 0, 12),
+        Size = UDim2.new(0, 1, 1, -28),
+        Position = UDim2.new(1, 0, 0, 14),
         BorderSizePixel = 0,
         Parent = Sidebar
     })
@@ -253,7 +252,7 @@ function Stellar:CreateWindow(config)
     local Header = Create("Frame", {
         Name = "Header",
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 65),
+        Size = UDim2.new(1, 0, 0, 70),
         Parent = Sidebar
     })
     MakeDraggable(Header, MainFrame)
@@ -261,16 +260,16 @@ function Stellar:CreateWindow(config)
     local LogoContainer = Create("Frame", {
         Name = "Logo",
         BackgroundColor3 = Theme.Primary,
-        Size = UDim2.new(0, 38, 0, 38),
-        Position = UDim2.new(0, 14, 0, 14),
+        Size = UDim2.new(0, 42, 0, 42),
+        Position = UDim2.new(0, 16, 0, 14),
         Parent = Header
     })
     Corner(LogoContainer, 10)
     
-    local LogoGradient = Create("UIGradient", {
+    Create("UIGradient", {
         Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Color3.fromRGB(70, 140, 255)),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(120, 80, 255))
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(80, 150, 255)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(130, 90, 255))
         }),
         Rotation = 45,
         Parent = LogoContainer
@@ -280,7 +279,7 @@ function Stellar:CreateWindow(config)
         Image = WindowLogo,
         ImageColor3 = Theme.Text,
         BackgroundTransparency = 1,
-        Size = UDim2.new(0, 20, 0, 20),
+        Size = UDim2.new(0, 22, 0, 22),
         Position = UDim2.new(0.5, 0, 0.5, 0),
         AnchorPoint = Vector2.new(0.5, 0.5),
         ScaleType = Enum.ScaleType.Fit,
@@ -291,10 +290,10 @@ function Stellar:CreateWindow(config)
         Text = WindowTitle,
         Font = Enum.Font.GothamBold,
         TextColor3 = Theme.Text,
-        TextSize = 14,
+        TextSize = 15,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 62, 0, 16),
-        Size = UDim2.new(1, -70, 0, 16),
+        Position = UDim2.new(0, 68, 0, 17),
+        Size = UDim2.new(1, -76, 0, 17),
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = Header
     })
@@ -305,20 +304,47 @@ function Stellar:CreateWindow(config)
         TextColor3 = Theme.TextMuted,
         TextSize = 11,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 62, 0, 34),
-        Size = UDim2.new(1, -70, 0, 12),
+        Position = UDim2.new(0, 68, 0, 36),
+        Size = UDim2.new(1, -76, 0, 13),
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = Header
     })
     
+    local SearchContainer = Create("Frame", {
+        Name = "Search",
+        BackgroundColor3 = Theme.Tertiary,
+        Size = UDim2.new(1, -28, 0, 34),
+        Position = UDim2.new(0, 14, 0, 72),
+        Parent = Sidebar
+    })
+    Corner(SearchContainer, 8)
+    
+    CreateIcon(SearchContainer, "Search", UDim2.new(0, 14, 0, 14), UDim2.new(0, 10, 0.5, 0), Theme.TextMuted)
+    
+    local SearchBox = Create("TextBox", {
+        Name = "SearchInput",
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, -36, 1, 0),
+        Position = UDim2.new(0, 30, 0, 0),
+        Text = "",
+        PlaceholderText = "Search...",
+        PlaceholderColor3 = Theme.TextMuted,
+        Font = Enum.Font.Gotham,
+        TextColor3 = Theme.Text,
+        TextSize = 12,
+        TextXAlignment = Enum.TextXAlignment.Left,
+        ClearTextOnFocus = false,
+        Parent = SearchContainer
+    })
+    
     Create("TextLabel", {
-        Text = "MENU",
+        Text = "NAVIGATION",
         Font = Enum.Font.GothamBold,
         TextColor3 = Theme.TextMuted,
         TextSize = 9,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 14, 0, 72),
-        Size = UDim2.new(1, -28, 0, 12),
+        Position = UDim2.new(0, 16, 0, 116),
+        Size = UDim2.new(1, -32, 0, 12),
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = Sidebar
     })
@@ -326,8 +352,8 @@ function Stellar:CreateWindow(config)
     local TabContainer = Create("ScrollingFrame", {
         Name = "Tabs",
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 1, -140),
-        Position = UDim2.new(0, 0, 0, 90),
+        Size = UDim2.new(1, 0, 1, -185),
+        Position = UDim2.new(0, 0, 0, 134),
         ScrollBarThickness = 0,
         ScrollingDirection = Enum.ScrollingDirection.Y,
         CanvasSize = UDim2.new(0, 0, 0, 0),
@@ -336,20 +362,20 @@ function Stellar:CreateWindow(config)
     
     local TabLayout = Create("UIListLayout", {
         SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 3),
+        Padding = UDim.new(0, 4),
         Parent = TabContainer
     })
-    Padding(TabContainer, 0, 10, 10, 8)
+    Padding(TabContainer, 0, 12, 12, 10)
     
     TabLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-        TabContainer.CanvasSize = UDim2.new(0, 0, 0, TabLayout.AbsoluteContentSize.Y + 16)
+        TabContainer.CanvasSize = UDim2.new(0, 0, 0, TabLayout.AbsoluteContentSize.Y + 18)
     end)
     
     local UserContainer = Create("Frame", {
         Name = "User",
         BackgroundColor3 = Theme.Tertiary,
-        Size = UDim2.new(1, -20, 0, 40),
-        Position = UDim2.new(0, 10, 1, -50),
+        Size = UDim2.new(1, -24, 0, 44),
+        Position = UDim2.new(0, 12, 1, -56),
         Parent = Sidebar
     })
     Corner(UserContainer, 8)
@@ -357,20 +383,20 @@ function Stellar:CreateWindow(config)
     local UserAvatar = Create("ImageLabel", {
         Image = Players:GetUserThumbnailAsync(Player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size100x100),
         BackgroundColor3 = Theme.Elevated,
-        Size = UDim2.new(0, 28, 0, 28),
-        Position = UDim2.new(0, 6, 0.5, -14),
+        Size = UDim2.new(0, 32, 0, 32),
+        Position = UDim2.new(0, 6, 0.5, -16),
         Parent = UserContainer
     })
-    Corner(UserAvatar, 14)
+    Corner(UserAvatar, 16)
     
     Create("TextLabel", {
         Text = Player.DisplayName,
         Font = Enum.Font.GothamMedium,
         TextColor3 = Theme.Text,
-        TextSize = 11,
+        TextSize = 12,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 40, 0, 6),
-        Size = UDim2.new(1, -48, 0, 12),
+        Position = UDim2.new(0, 44, 0, 7),
+        Size = UDim2.new(1, -52, 0, 14),
         TextXAlignment = Enum.TextXAlignment.Left,
         TextTruncate = Enum.TextTruncate.AtEnd,
         Parent = UserContainer
@@ -380,10 +406,10 @@ function Stellar:CreateWindow(config)
         Text = "@" .. Player.Name,
         Font = Enum.Font.Gotham,
         TextColor3 = Theme.TextMuted,
-        TextSize = 9,
+        TextSize = 10,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 40, 0, 20),
-        Size = UDim2.new(1, -48, 0, 12),
+        Position = UDim2.new(0, 44, 0, 23),
+        Size = UDim2.new(1, -52, 0, 12),
         TextXAlignment = Enum.TextXAlignment.Left,
         TextTruncate = Enum.TextTruncate.AtEnd,
         Parent = UserContainer
@@ -392,15 +418,15 @@ function Stellar:CreateWindow(config)
     local Content = Create("Frame", {
         Name = "Content",
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, -190, 1, 0),
-        Position = UDim2.new(0, 190, 0, 0),
+        Size = UDim2.new(1, -210, 1, 0),
+        Position = UDim2.new(0, 210, 0, 0),
         Parent = MainFrame
     })
     
     local TopBar = Create("Frame", {
         Name = "TopBar",
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 50),
+        Size = UDim2.new(1, 0, 0, 55),
         Parent = Content
     })
     MakeDraggable(TopBar, MainFrame)
@@ -410,10 +436,10 @@ function Stellar:CreateWindow(config)
         Text = "Dashboard",
         Font = Enum.Font.GothamBold,
         TextColor3 = Theme.Text,
-        TextSize = 17,
+        TextSize = 18,
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 18, 0, 14),
-        Size = UDim2.new(0.5, 0, 0, 22),
+        Position = UDim2.new(0, 22, 0, 16),
+        Size = UDim2.new(0.5, 0, 0, 24),
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = TopBar
     })
@@ -421,32 +447,32 @@ function Stellar:CreateWindow(config)
     local Controls = Create("Frame", {
         Name = "Controls",
         BackgroundTransparency = 1,
-        Size = UDim2.new(0, 70, 0, 28),
-        Position = UDim2.new(1, -85, 0, 11),
+        Size = UDim2.new(0, 72, 0, 30),
+        Position = UDim2.new(1, -90, 0, 12),
         Parent = TopBar
     })
     
     Create("UIListLayout", {
         FillDirection = Enum.FillDirection.Horizontal,
         HorizontalAlignment = Enum.HorizontalAlignment.Right,
-        Padding = UDim.new(0, 6),
+        Padding = UDim.new(0, 8),
         Parent = Controls
     })
     
     local MinBtn = Create("TextButton", {
         Name = "Minimize",
         BackgroundColor3 = Theme.Tertiary,
-        Size = UDim2.new(0, 28, 0, 28),
+        Size = UDim2.new(0, 30, 0, 30),
         Text = "",
         AutoButtonColor = false,
         Parent = Controls
     })
-    Corner(MinBtn, 6)
+    Corner(MinBtn, 8)
     
     Create("Frame", {
         BackgroundColor3 = Theme.TextDark,
-        Size = UDim2.new(0, 10, 0, 2),
-        Position = UDim2.new(0.5, -5, 0.5, -1),
+        Size = UDim2.new(0, 12, 0, 2),
+        Position = UDim2.new(0.5, -6, 0.5, -1),
         BorderSizePixel = 0,
         Parent = MinBtn
     })
@@ -454,35 +480,35 @@ function Stellar:CreateWindow(config)
     local CloseBtn = Create("TextButton", {
         Name = "Close",
         BackgroundColor3 = Theme.Tertiary,
-        Size = UDim2.new(0, 28, 0, 28),
+        Size = UDim2.new(0, 30, 0, 30),
         Text = "",
         AutoButtonColor = false,
         Parent = Controls
     })
-    Corner(CloseBtn, 6)
+    Corner(CloseBtn, 8)
     
     Create("TextLabel", {
         Text = "×",
         Font = Enum.Font.GothamBold,
         TextColor3 = Theme.TextDark,
-        TextSize = 18,
+        TextSize = 20,
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 1, 0),
+        Size = UDim2.new(1, 0, 1, -2),
         Parent = CloseBtn
     })
     
     MinBtn.MouseEnter:Connect(function()
-        Tween(MinBtn, {BackgroundColor3 = Theme.Elevated}, 0.15)
+        Tween(MinBtn, {BackgroundColor3 = Theme.Elevated}, 0.12)
     end)
     MinBtn.MouseLeave:Connect(function()
-        Tween(MinBtn, {BackgroundColor3 = Theme.Tertiary}, 0.15)
+        Tween(MinBtn, {BackgroundColor3 = Theme.Tertiary}, 0.12)
     end)
     
     CloseBtn.MouseEnter:Connect(function()
-        Tween(CloseBtn, {BackgroundColor3 = Theme.Error}, 0.15)
+        Tween(CloseBtn, {BackgroundColor3 = Theme.Error}, 0.12)
     end)
     CloseBtn.MouseLeave:Connect(function()
-        Tween(CloseBtn, {BackgroundColor3 = Theme.Tertiary}, 0.15)
+        Tween(CloseBtn, {BackgroundColor3 = Theme.Tertiary}, 0.12)
     end)
     
     CloseBtn.MouseButton1Click:Connect(function()
@@ -495,8 +521,8 @@ function Stellar:CreateWindow(config)
     local PageContainer = Create("Frame", {
         Name = "Pages",
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 1, -50),
-        Position = UDim2.new(0, 0, 0, 50),
+        Size = UDim2.new(1, 0, 1, -55),
+        Position = UDim2.new(0, 0, 0, 55),
         ClipsDescendants = true,
         Parent = Content
     })
@@ -504,21 +530,35 @@ function Stellar:CreateWindow(config)
     local ToggleBtn = Create("TextButton", {
         Name = "Toggle",
         BackgroundColor3 = Theme.Primary,
-        Size = UDim2.new(0, 46, 0, 46),
-        Position = UDim2.new(0, 18, 1, -64),
+        Size = UDim2.new(0, 54, 0, 54),
+        Position = UDim2.new(0, 22, 0.5, -50),
         Text = "",
         AutoButtonColor = false,
         Visible = false,
         Parent = ScreenGui
     })
-    Corner(ToggleBtn, 23)
+    Corner(ToggleBtn, 14)
     
     Create("UIGradient", {
         Color = ColorSequence.new({
-            ColorSequenceKeypoint.new(0, Color3.fromRGB(70, 140, 255)),
-            ColorSequenceKeypoint.new(1, Color3.fromRGB(120, 80, 255))
+            ColorSequenceKeypoint.new(0, Color3.fromRGB(80, 150, 255)),
+            ColorSequenceKeypoint.new(1, Color3.fromRGB(130, 90, 255))
         }),
         Rotation = 45,
+        Parent = ToggleBtn
+    })
+    
+    local ToggleShadow = Create("ImageLabel", {
+        BackgroundTransparency = 1,
+        Image = "rbxassetid://5554236805",
+        ImageColor3 = Color3.fromRGB(80, 100, 200),
+        ImageTransparency = 0.6,
+        ScaleType = Enum.ScaleType.Slice,
+        SliceCenter = Rect.new(23, 23, 277, 277),
+        Size = UDim2.new(1, 30, 1, 30),
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        ZIndex = -1,
         Parent = ToggleBtn
     })
     
@@ -526,7 +566,7 @@ function Stellar:CreateWindow(config)
         Image = WindowLogo,
         ImageColor3 = Theme.Text,
         BackgroundTransparency = 1,
-        Size = UDim2.new(0, 22, 0, 22),
+        Size = UDim2.new(0, 26, 0, 26),
         Position = UDim2.new(0.5, 0, 0.5, 0),
         AnchorPoint = Vector2.new(0.5, 0.5),
         ScaleType = Enum.ScaleType.Fit,
@@ -534,21 +574,21 @@ function Stellar:CreateWindow(config)
     })
     
     ToggleBtn.MouseEnter:Connect(function()
-        Tween(ToggleBtn, {Size = UDim2.new(0, 50, 0, 50), Position = UDim2.new(0, 16, 1, -66)}, 0.15, Enum.EasingStyle.Back)
+        Tween(ToggleBtn, {Size = UDim2.new(0, 60, 0, 60), Position = UDim2.new(0, 19, 0.5, -53)}, 0.15, Enum.EasingStyle.Back)
     end)
     ToggleBtn.MouseLeave:Connect(function()
-        Tween(ToggleBtn, {Size = UDim2.new(0, 46, 0, 46), Position = UDim2.new(0, 18, 1, -64)}, 0.15)
+        Tween(ToggleBtn, {Size = UDim2.new(0, 54, 0, 54), Position = UDim2.new(0, 22, 0.5, -50)}, 0.12)
     end)
     
     local function Minimize()
         Minimized = true
         Tween(MainFrame, {Size = UDim2.new(0, 0, 0, 0)}, 0.25, Enum.EasingStyle.Back, Enum.EasingDirection.In)
         Tween(Shadow, {ImageTransparency = 1}, 0.25)
-        task.wait(0.2)
+        task.wait(0.22)
         MainFrame.Visible = false
         ToggleBtn.Visible = true
         ToggleBtn.Size = UDim2.new(0, 0, 0, 0)
-        Tween(ToggleBtn, {Size = UDim2.new(0, 46, 0, 46)}, 0.25, Enum.EasingStyle.Back)
+        Tween(ToggleBtn, {Size = UDim2.new(0, 54, 0, 54)}, 0.28, Enum.EasingStyle.Back)
     end
     
     local function Maximize()
@@ -556,8 +596,8 @@ function Stellar:CreateWindow(config)
         ToggleBtn.Visible = false
         MainFrame.Visible = true
         MainFrame.Size = UDim2.new(0, 0, 0, 0)
-        Tween(MainFrame, {Size = WindowSize}, 0.3, Enum.EasingStyle.Back)
-        Tween(Shadow, {ImageTransparency = 0.5}, 0.3)
+        Tween(MainFrame, {Size = WindowSize}, 0.35, Enum.EasingStyle.Back)
+        Tween(Shadow, {ImageTransparency = 0.5}, 0.35)
     end
     
     MinBtn.MouseButton1Click:Connect(function()
@@ -578,6 +618,18 @@ function Stellar:CreateWindow(config)
         end
     end)
     
+    SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
+        local searchText = string.lower(SearchBox.Text)
+        for _, tabData in pairs(AllTabButtons) do
+            local tabName = string.lower(tabData.Name)
+            if searchText == "" or string.find(tabName, searchText) then
+                tabData.Button.Visible = true
+            else
+                tabData.Button.Visible = false
+            end
+        end
+    end)
+    
     local function CreateDashboard()
         local DashPage = Create("ScrollingFrame", {
             Name = "Dashboard",
@@ -590,32 +642,32 @@ function Stellar:CreateWindow(config)
             Visible = true,
             Parent = PageContainer
         })
-        Padding(DashPage, 8, 18, 18, 18)
+        Padding(DashPage, 10, 22, 22, 22)
         
         local DashLayout = Create("UIListLayout", {
             SortOrder = Enum.SortOrder.LayoutOrder,
-            Padding = UDim.new(0, 10),
+            Padding = UDim.new(0, 14),
             Parent = DashPage
         })
         
         DashLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-            DashPage.CanvasSize = UDim2.new(0, 0, 0, DashLayout.AbsoluteContentSize.Y + 35)
+            DashPage.CanvasSize = UDim2.new(0, 0, 0, DashLayout.AbsoluteContentSize.Y + 40)
         end)
         
         local Banner = Create("Frame", {
             Name = "Banner",
             BackgroundColor3 = Theme.Primary,
-            Size = UDim2.new(1, 0, 0, 110),
+            Size = UDim2.new(1, 0, 0, 130),
             LayoutOrder = 1,
             Parent = DashPage
         })
-        Corner(Banner, 10)
+        Corner(Banner, 12)
         
         Create("UIGradient", {
             Color = ColorSequence.new({
-                ColorSequenceKeypoint.new(0, Color3.fromRGB(65, 135, 255)),
-                ColorSequenceKeypoint.new(0.5, Color3.fromRGB(100, 100, 240)),
-                ColorSequenceKeypoint.new(1, Color3.fromRGB(140, 75, 230))
+                ColorSequenceKeypoint.new(0, Color3.fromRGB(70, 140, 255)),
+                ColorSequenceKeypoint.new(0.5, Color3.fromRGB(105, 105, 245)),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(145, 80, 235))
             }),
             Rotation = 15,
             Parent = Banner
@@ -623,40 +675,40 @@ function Stellar:CreateWindow(config)
         
         local Circle1 = Create("Frame", {
             BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-            BackgroundTransparency = 0.93,
-            Size = UDim2.new(0, 160, 0, 160),
-            Position = UDim2.new(1, -40, 0, -50),
+            BackgroundTransparency = 0.92,
+            Size = UDim2.new(0, 200, 0, 200),
+            Position = UDim2.new(1, -60, 0, -60),
             Parent = Banner
         })
-        Corner(Circle1, 80)
+        Corner(Circle1, 100)
         
         local Circle2 = Create("Frame", {
             BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-            BackgroundTransparency = 0.96,
-            Size = UDim2.new(0, 100, 0, 100),
-            Position = UDim2.new(1, -130, 0, 35),
+            BackgroundTransparency = 0.95,
+            Size = UDim2.new(0, 130, 0, 130),
+            Position = UDim2.new(1, -160, 0, 50),
             Parent = Banner
         })
-        Corner(Circle2, 50)
+        Corner(Circle2, 65)
         
         local BannerAvatar = Create("ImageLabel", {
             Image = Players:GetUserThumbnailAsync(Player.UserId, Enum.ThumbnailType.AvatarBust, Enum.ThumbnailSize.Size150x150),
             BackgroundColor3 = Theme.Background,
-            Size = UDim2.new(0, 75, 0, 75),
-            Position = UDim2.new(0, 18, 0.5, -37),
+            Size = UDim2.new(0, 90, 0, 90),
+            Position = UDim2.new(0, 22, 0.5, -45),
             Parent = Banner
         })
-        Corner(BannerAvatar, 38)
+        Corner(BannerAvatar, 45)
         
         Create("TextLabel", {
             Text = "Welcome back,",
             Font = Enum.Font.Gotham,
             TextColor3 = Color3.fromRGB(255, 255, 255),
-            TextTransparency = 0.25,
-            TextSize = 12,
+            TextTransparency = 0.2,
+            TextSize = 14,
             BackgroundTransparency = 1,
-            Position = UDim2.new(0, 105, 0, 25),
-            Size = UDim2.new(0.5, 0, 0, 14),
+            Position = UDim2.new(0, 128, 0, 30),
+            Size = UDim2.new(0.5, 0, 0, 16),
             TextXAlignment = Enum.TextXAlignment.Left,
             Parent = Banner
         })
@@ -665,22 +717,22 @@ function Stellar:CreateWindow(config)
             Text = Player.DisplayName,
             Font = Enum.Font.GothamBlack,
             TextColor3 = Color3.fromRGB(255, 255, 255),
-            TextSize = 22,
+            TextSize = 26,
             BackgroundTransparency = 1,
-            Position = UDim2.new(0, 105, 0, 42),
-            Size = UDim2.new(0.5, 0, 0, 26),
+            Position = UDim2.new(0, 128, 0, 48),
+            Size = UDim2.new(0.5, 0, 0, 30),
             TextXAlignment = Enum.TextXAlignment.Left,
             Parent = Banner
         })
         
         Create("TextLabel", {
-            Text = "Have a great session!",
-            Font = Enum.Font.Gotham,
+            Text = "Ready to dominate!",
+            Font = Enum.Font.GothamMedium,
             TextColor3 = Color3.fromRGB(255, 255, 255),
             TextTransparency = 0.15,
-            TextSize = 11,
+            TextSize = 12,
             BackgroundTransparency = 1,
-            Position = UDim2.new(0, 105, 0, 72),
+            Position = UDim2.new(0, 128, 0, 84),
             Size = UDim2.new(0.5, 0, 0, 14),
             TextXAlignment = Enum.TextXAlignment.Left,
             Parent = Banner
@@ -689,14 +741,14 @@ function Stellar:CreateWindow(config)
         local StatsRow = Create("Frame", {
             Name = "Stats",
             BackgroundTransparency = 1,
-            Size = UDim2.new(1, 0, 0, 75),
+            Size = UDim2.new(1, 0, 0, 90),
             LayoutOrder = 2,
             Parent = DashPage
         })
         
         Create("UIGridLayout", {
-            CellSize = UDim2.new(0.245, -6, 1, 0),
-            CellPadding = UDim2.new(0, 8, 0, 0),
+            CellSize = UDim2.new(0.245, -8, 1, 0),
+            CellPadding = UDim2.new(0, 10, 0, 0),
             Parent = StatsRow
         })
         
@@ -705,28 +757,28 @@ function Stellar:CreateWindow(config)
                 BackgroundColor3 = Theme.Tertiary,
                 Parent = StatsRow
             })
-            Corner(Card, 8)
+            Corner(Card, 10)
             
             local IconBg = Create("Frame", {
                 BackgroundColor3 = color,
-                BackgroundTransparency = 0.88,
-                Size = UDim2.new(0, 32, 0, 32),
-                Position = UDim2.new(0, 10, 0, 10),
+                BackgroundTransparency = 0.85,
+                Size = UDim2.new(0, 38, 0, 38),
+                Position = UDim2.new(0, 12, 0, 12),
                 Parent = Card
             })
-            Corner(IconBg, 8)
+            Corner(IconBg, 10)
             
-            local Icon = CreateIcon(Card, iconName, UDim2.new(0, 16, 0, 16), UDim2.new(0, 18, 0, 18), color)
+            local Icon = CreateIcon(Card, iconName, UDim2.new(0, 18, 0, 18), UDim2.new(0, 22, 0, 22), color)
             Icon.AnchorPoint = Vector2.new(0, 0)
             
             Create("TextLabel", {
                 Text = title,
-                Font = Enum.Font.Gotham,
+                Font = Enum.Font.GothamMedium,
                 TextColor3 = Theme.TextMuted,
-                TextSize = 9,
+                TextSize = 10,
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 10, 1, -28),
-                Size = UDim2.new(1, -16, 0, 10),
+                Position = UDim2.new(0, 12, 1, -35),
+                Size = UDim2.new(1, -20, 0, 12),
                 TextXAlignment = Enum.TextXAlignment.Left,
                 Parent = Card
             })
@@ -735,10 +787,10 @@ function Stellar:CreateWindow(config)
                 Text = value,
                 Font = Enum.Font.GothamBold,
                 TextColor3 = Theme.Text,
-                TextSize = 14,
+                TextSize = 16,
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 10, 1, -15),
-                Size = UDim2.new(1, -16, 0, 14),
+                Position = UDim2.new(0, 12, 1, -20),
+                Size = UDim2.new(1, -20, 0, 16),
                 TextXAlignment = Enum.TextXAlignment.Left,
                 Parent = Card
             })
@@ -771,14 +823,14 @@ function Stellar:CreateWindow(config)
         local InfoRow = Create("Frame", {
             Name = "Info",
             BackgroundTransparency = 1,
-            Size = UDim2.new(1, 0, 0, 100),
+            Size = UDim2.new(1, 0, 0, 115),
             LayoutOrder = 3,
             Parent = DashPage
         })
         
         Create("UIGridLayout", {
-            CellSize = UDim2.new(0.49, -4, 1, 0),
-            CellPadding = UDim2.new(0, 8, 0, 0),
+            CellSize = UDim2.new(0.49, -6, 1, 0),
+            CellPadding = UDim2.new(0, 12, 0, 0),
             Parent = InfoRow
         })
         
@@ -787,42 +839,42 @@ function Stellar:CreateWindow(config)
             BackgroundColor3 = Theme.Tertiary,
             Parent = InfoRow
         })
-        Corner(LibCard, 8)
+        Corner(LibCard, 10)
         
-        CreateIcon(LibCard, "Code", UDim2.new(0, 14, 0, 14), UDim2.new(0, 12, 0, 14), Theme.Primary)
+        CreateIcon(LibCard, "Code", UDim2.new(0, 16, 0, 16), UDim2.new(0, 14, 0, 16), Theme.Primary)
         
         Create("TextLabel", {
             Text = "Library Info",
             Font = Enum.Font.GothamBold,
             TextColor3 = Theme.Text,
-            TextSize = 12,
+            TextSize = 13,
             BackgroundTransparency = 1,
-            Position = UDim2.new(0, 32, 0, 12),
-            Size = UDim2.new(1, -40, 0, 14),
+            Position = UDim2.new(0, 36, 0, 14),
+            Size = UDim2.new(1, -44, 0, 15),
             TextXAlignment = Enum.TextXAlignment.Left,
             Parent = LibCard
         })
         
         Create("TextLabel", {
-            Text = "Version 5.0",
+            Text = "Version 5.1",
             Font = Enum.Font.Gotham,
             TextColor3 = Theme.TextDark,
-            TextSize = 10,
+            TextSize = 11,
             BackgroundTransparency = 1,
-            Position = UDim2.new(0, 12, 0, 36),
-            Size = UDim2.new(1, -16, 0, 12),
+            Position = UDim2.new(0, 14, 0, 40),
+            Size = UDim2.new(1, -20, 0, 13),
             TextXAlignment = Enum.TextXAlignment.Left,
             Parent = LibCard
         })
         
         Create("TextLabel", {
             Text = "Undetected",
-            Font = Enum.Font.Gotham,
+            Font = Enum.Font.GothamMedium,
             TextColor3 = Theme.Success,
-            TextSize = 10,
+            TextSize = 11,
             BackgroundTransparency = 1,
-            Position = UDim2.new(0, 12, 0, 52),
-            Size = UDim2.new(1, -16, 0, 12),
+            Position = UDim2.new(0, 14, 0, 58),
+            Size = UDim2.new(1, -20, 0, 13),
             TextXAlignment = Enum.TextXAlignment.Left,
             Parent = LibCard
         })
@@ -831,10 +883,10 @@ function Stellar:CreateWindow(config)
             Text = "Updated Today",
             Font = Enum.Font.Gotham,
             TextColor3 = Theme.TextMuted,
-            TextSize = 10,
+            TextSize = 11,
             BackgroundTransparency = 1,
-            Position = UDim2.new(0, 12, 0, 68),
-            Size = UDim2.new(1, -16, 0, 12),
+            Position = UDim2.new(0, 14, 0, 76),
+            Size = UDim2.new(1, -20, 0, 13),
             TextXAlignment = Enum.TextXAlignment.Left,
             Parent = LibCard
         })
@@ -844,53 +896,53 @@ function Stellar:CreateWindow(config)
             BackgroundColor3 = Theme.Tertiary,
             Parent = InfoRow
         })
-        Corner(DiscCard, 8)
+        Corner(DiscCard, 10)
         
-        CreateIcon(DiscCard, "Discord", UDim2.new(0, 14, 0, 14), UDim2.new(0, 12, 0, 14), Theme.Primary)
+        CreateIcon(DiscCard, "Discord", UDim2.new(0, 16, 0, 16), UDim2.new(0, 14, 0, 16), Theme.Primary)
         
         Create("TextLabel", {
             Text = "Community",
             Font = Enum.Font.GothamBold,
             TextColor3 = Theme.Text,
-            TextSize = 12,
+            TextSize = 13,
             BackgroundTransparency = 1,
-            Position = UDim2.new(0, 32, 0, 12),
-            Size = UDim2.new(1, -40, 0, 14),
+            Position = UDim2.new(0, 36, 0, 14),
+            Size = UDim2.new(1, -44, 0, 15),
             TextXAlignment = Enum.TextXAlignment.Left,
             Parent = DiscCard
         })
         
         Create("TextLabel", {
-            Text = "Join for updates",
+            Text = "Join for updates & support",
             Font = Enum.Font.Gotham,
             TextColor3 = Theme.TextDark,
-            TextSize = 10,
+            TextSize = 11,
             BackgroundTransparency = 1,
-            Position = UDim2.new(0, 12, 0, 36),
-            Size = UDim2.new(1, -16, 0, 12),
+            Position = UDim2.new(0, 14, 0, 40),
+            Size = UDim2.new(1, -20, 0, 13),
             TextXAlignment = Enum.TextXAlignment.Left,
             Parent = DiscCard
         })
         
         local CopyBtn = Create("TextButton", {
-            Text = "Copy Link",
+            Text = "Copy Invite Link",
             Font = Enum.Font.GothamMedium,
             TextColor3 = Theme.Primary,
-            TextSize = 10,
+            TextSize = 11,
             BackgroundColor3 = Theme.Primary,
             BackgroundTransparency = 0.9,
-            Position = UDim2.new(0, 12, 1, -34),
-            Size = UDim2.new(1, -24, 0, 24),
+            Position = UDim2.new(0, 14, 1, -40),
+            Size = UDim2.new(1, -28, 0, 28),
             AutoButtonColor = false,
             Parent = DiscCard
         })
-        Corner(CopyBtn, 6)
+        Corner(CopyBtn, 7)
         
         CopyBtn.MouseEnter:Connect(function()
-            Tween(CopyBtn, {BackgroundTransparency = 0.8}, 0.12)
+            Tween(CopyBtn, {BackgroundTransparency = 0.8}, 0.1)
         end)
         CopyBtn.MouseLeave:Connect(function()
-            Tween(CopyBtn, {BackgroundTransparency = 0.9}, 0.12)
+            Tween(CopyBtn, {BackgroundTransparency = 0.9}, 0.1)
         end)
         CopyBtn.MouseButton1Click:Connect(function()
             if setclipboard then
@@ -898,7 +950,7 @@ function Stellar:CreateWindow(config)
             end
             CopyBtn.Text = "Copied!"
             task.wait(1.2)
-            CopyBtn.Text = "Copy Link"
+            CopyBtn.Text = "Copy Invite Link"
         end)
         
         return DashPage
@@ -911,29 +963,29 @@ function Stellar:CreateWindow(config)
         local Tab = Create("TextButton", {
             Name = name,
             BackgroundColor3 = isHome and Theme.Primary or Theme.Tertiary,
-            BackgroundTransparency = isHome and 0.9 or 1,
-            Size = UDim2.new(1, 0, 0, 36),
+            BackgroundTransparency = isHome and 0.88 or 1,
+            Size = UDim2.new(1, 0, 0, 38),
             Text = "",
             AutoButtonColor = false,
             LayoutOrder = isHome and -999 or 0,
             Parent = TabContainer
         })
-        Corner(Tab, 7)
+        Corner(Tab, 8)
         
         local Indicator = Create("Frame", {
             Name = "Indicator",
             BackgroundColor3 = Theme.Primary,
-            Size = UDim2.new(0, 3, 0, isHome and 16 or 0),
-            Position = UDim2.new(0, 0, 0.5, -8),
+            Size = UDim2.new(0, 3, 0, isHome and 18 or 0),
+            Position = UDim2.new(0, 0, 0.5, -9),
             Parent = Tab
         })
         Corner(Indicator, 2)
         
         local TabIcon
         if type(icon) == "string" and icon:find("rbxassetid") then
-            TabIcon = CreateCustomIcon(Tab, icon, UDim2.new(0, 16, 0, 16), UDim2.new(0, 11, 0.5, 0), isHome and Theme.Primary or Theme.TextMuted)
+            TabIcon = CreateCustomIcon(Tab, icon, UDim2.new(0, 17, 0, 17), UDim2.new(0, 12, 0.5, 0), isHome and Theme.Primary or Theme.TextMuted)
         else
-            TabIcon = CreateIcon(Tab, icon or "Folder", UDim2.new(0, 16, 0, 16), UDim2.new(0, 11, 0.5, 0), isHome and Theme.Primary or Theme.TextMuted)
+            TabIcon = CreateIcon(Tab, icon or "Folder", UDim2.new(0, 17, 0, 17), UDim2.new(0, 12, 0.5, 0), isHome and Theme.Primary or Theme.TextMuted)
         end
         
         local TabLabel = Create("TextLabel", {
@@ -941,13 +993,15 @@ function Stellar:CreateWindow(config)
             Text = name,
             Font = Enum.Font.GothamMedium,
             TextColor3 = isHome and Theme.Text or Theme.TextDark,
-            TextSize = 11,
+            TextSize = 12,
             BackgroundTransparency = 1,
-            Position = UDim2.new(0, 34, 0, 0),
-            Size = UDim2.new(1, -42, 1, 0),
+            Position = UDim2.new(0, 38, 0, 0),
+            Size = UDim2.new(1, -46, 1, 0),
             TextXAlignment = Enum.TextXAlignment.Left,
             Parent = Tab
         })
+        
+        table.insert(AllTabButtons, {Name = name, Button = Tab})
         
         return Tab, Indicator, TabIcon, TabLabel
     end
@@ -957,11 +1011,11 @@ function Stellar:CreateWindow(config)
     CurrentTab = HomeTab
     
     local function SwitchTab(tabName)
-        for name, data in pairs(Tabs) do
-            Tween(data.Button, {BackgroundTransparency = 1}, 0.15)
-            Tween(data.Indicator, {Size = UDim2.new(0, 3, 0, 0)}, 0.15)
-            Tween(data.Icon, {ImageColor3 = Theme.TextMuted}, 0.15)
-            Tween(data.Label, {TextColor3 = Theme.TextDark}, 0.15)
+        for _, data in pairs(Tabs) do
+            Tween(data.Button, {BackgroundTransparency = 1}, 0.12)
+            Tween(data.Indicator, {Size = UDim2.new(0, 3, 0, 0)}, 0.12)
+            Tween(data.Icon, {ImageColor3 = Theme.TextMuted}, 0.12)
+            Tween(data.Label, {TextColor3 = Theme.TextDark}, 0.12)
         end
         
         for _, page in pairs(Pages) do
@@ -970,10 +1024,10 @@ function Stellar:CreateWindow(config)
         
         local data = Tabs[tabName]
         if data then
-            Tween(data.Button, {BackgroundTransparency = 0.9}, 0.15)
-            Tween(data.Indicator, {Size = UDim2.new(0, 3, 0, 16)}, 0.18, Enum.EasingStyle.Back)
-            Tween(data.Icon, {ImageColor3 = Theme.Primary}, 0.15)
-            Tween(data.Label, {TextColor3 = Theme.Text}, 0.15)
+            Tween(data.Button, {BackgroundTransparency = 0.88}, 0.12)
+            Tween(data.Indicator, {Size = UDim2.new(0, 3, 0, 18)}, 0.15, Enum.EasingStyle.Back)
+            Tween(data.Icon, {ImageColor3 = Theme.Primary}, 0.12)
+            Tween(data.Label, {TextColor3 = Theme.Text}, 0.12)
             CurrentTab = data.Button
         end
         
@@ -990,26 +1044,26 @@ function Stellar:CreateWindow(config)
     
     HomeTab.MouseEnter:Connect(function()
         if CurrentTab ~= HomeTab then
-            Tween(HomeTab, {BackgroundTransparency = 0.94}, 0.12)
+            Tween(HomeTab, {BackgroundTransparency = 0.92}, 0.1)
         end
     end)
     HomeTab.MouseLeave:Connect(function()
         if CurrentTab ~= HomeTab then
-            Tween(HomeTab, {BackgroundTransparency = 1}, 0.12)
+            Tween(HomeTab, {BackgroundTransparency = 1}, 0.1)
         end
     end)
     
     local NotifContainer = Create("Frame", {
         Name = "Notifications",
         BackgroundTransparency = 1,
-        Size = UDim2.new(0, 280, 1, -20),
-        Position = UDim2.new(1, -290, 0, 10),
+        Size = UDim2.new(0, 300, 1, -24),
+        Position = UDim2.new(1, -312, 0, 12),
         Parent = ScreenGui
     })
     
     Create("UIListLayout", {
         SortOrder = Enum.SortOrder.LayoutOrder,
-        Padding = UDim.new(0, 6),
+        Padding = UDim.new(0, 8),
         VerticalAlignment = Enum.VerticalAlignment.Bottom,
         Parent = NotifContainer
     })
@@ -1043,11 +1097,11 @@ function Stellar:CreateWindow(config)
             ClipsDescendants = true,
             Parent = NotifContainer
         })
-        Corner(Notif, 8)
+        Corner(Notif, 10)
         
         Create("Frame", {
             BackgroundColor3 = color,
-            Size = UDim2.new(0, 3, 1, 0),
+            Size = UDim2.new(0, 4, 1, 0),
             BorderSizePixel = 0,
             Parent = Notif
         })
@@ -1056,10 +1110,10 @@ function Stellar:CreateWindow(config)
             Text = Title,
             Font = Enum.Font.GothamBold,
             TextColor3 = Theme.Text,
-            TextSize = 11,
+            TextSize = 12,
             BackgroundTransparency = 1,
-            Position = UDim2.new(0, 14, 0, 10),
-            Size = UDim2.new(1, -20, 0, 13),
+            Position = UDim2.new(0, 16, 0, 12),
+            Size = UDim2.new(1, -24, 0, 14),
             TextXAlignment = Enum.TextXAlignment.Left,
             Parent = Notif
         })
@@ -1068,17 +1122,17 @@ function Stellar:CreateWindow(config)
             Text = Message,
             Font = Enum.Font.Gotham,
             TextColor3 = Theme.TextDark,
-            TextSize = 10,
+            TextSize = 11,
             BackgroundTransparency = 1,
-            Position = UDim2.new(0, 14, 0, 26),
-            Size = UDim2.new(1, -20, 0, 24),
+            Position = UDim2.new(0, 16, 0, 30),
+            Size = UDim2.new(1, -24, 0, 28),
             TextXAlignment = Enum.TextXAlignment.Left,
             TextWrapped = true,
             TextYAlignment = Enum.TextYAlignment.Top,
             Parent = Notif
         })
         
-        Tween(Notif, {Size = UDim2.new(1, 0, 0, 58)}, 0.25, Enum.EasingStyle.Back)
+        Tween(Notif, {Size = UDim2.new(1, 0, 0, 66)}, 0.25, Enum.EasingStyle.Back)
         
         task.delay(Duration, function()
             Tween(Notif, {Size = UDim2.new(1, 0, 0, 0)}, 0.2)
@@ -1104,16 +1158,16 @@ function Stellar:CreateWindow(config)
             Visible = false,
             Parent = PageContainer
         })
-        Padding(Page, 8, 18, 18, 18)
+        Padding(Page, 10, 22, 22, 22)
         
         local PageLayout = Create("UIListLayout", {
             SortOrder = Enum.SortOrder.LayoutOrder,
-            Padding = UDim.new(0, 6),
+            Padding = UDim.new(0, 7),
             Parent = Page
         })
         
         PageLayout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
-            Page.CanvasSize = UDim2.new(0, 0, 0, PageLayout.AbsoluteContentSize.Y + 35)
+            Page.CanvasSize = UDim2.new(0, 0, 0, PageLayout.AbsoluteContentSize.Y + 40)
         end)
         
         Pages[name] = Page
@@ -1124,12 +1178,12 @@ function Stellar:CreateWindow(config)
         
         TabBtn.MouseEnter:Connect(function()
             if CurrentTab ~= TabBtn then
-                Tween(TabBtn, {BackgroundTransparency = 0.94}, 0.12)
+                Tween(TabBtn, {BackgroundTransparency = 0.92}, 0.1)
             end
         end)
         TabBtn.MouseLeave:Connect(function()
             if CurrentTab ~= TabBtn then
-                Tween(TabBtn, {BackgroundTransparency = 1}, 0.12)
+                Tween(TabBtn, {BackgroundTransparency = 1}, 0.1)
             end
         end)
         
@@ -1138,7 +1192,7 @@ function Stellar:CreateWindow(config)
         function Tab:Section(text)
             local Section = Create("Frame", {
                 BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 0, 24),
+                Size = UDim2.new(1, 0, 0, 26),
                 Parent = Page
             })
             
@@ -1146,10 +1200,10 @@ function Stellar:CreateWindow(config)
                 Text = string.upper(text),
                 Font = Enum.Font.GothamBold,
                 TextColor3 = Theme.Primary,
-                TextSize = 9,
+                TextSize = 10,
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 0, 0.5, -5),
-                Size = UDim2.new(0, 0, 0, 10),
+                Position = UDim2.new(0, 0, 0.5, -6),
+                Size = UDim2.new(0, 0, 0, 12),
                 TextXAlignment = Enum.TextXAlignment.Left,
                 AutomaticSize = Enum.AutomaticSize.X,
                 Parent = Section
@@ -1157,7 +1211,7 @@ function Stellar:CreateWindow(config)
             
             local Line = Create("Frame", {
                 BackgroundColor3 = Theme.Divider,
-                BackgroundTransparency = 0.4,
+                BackgroundTransparency = 0.35,
                 Size = UDim2.new(1, 0, 0, 1),
                 Position = UDim2.new(0, 0, 0.5, 0),
                 BorderSizePixel = 0,
@@ -1165,8 +1219,8 @@ function Stellar:CreateWindow(config)
             })
             
             task.defer(function()
-                Line.Position = UDim2.new(0, SectionLabel.AbsoluteSize.X + 10, 0.5, 0)
-                Line.Size = UDim2.new(1, -(SectionLabel.AbsoluteSize.X + 10), 0, 1)
+                Line.Position = UDim2.new(0, SectionLabel.AbsoluteSize.X + 12, 0.5, 0)
+                Line.Size = UDim2.new(1, -(SectionLabel.AbsoluteSize.X + 12), 0, 1)
             end)
         end
         
@@ -1177,21 +1231,21 @@ function Stellar:CreateWindow(config)
             
             local Button = Create("TextButton", {
                 BackgroundColor3 = Theme.Tertiary,
-                Size = UDim2.new(1, 0, 0, 38),
+                Size = UDim2.new(1, 0, 0, 40),
                 Text = "",
                 AutoButtonColor = false,
                 Parent = Page
             })
-            Corner(Button, 7)
+            Corner(Button, 8)
             
             Create("TextLabel", {
                 Text = Name,
                 Font = Enum.Font.GothamMedium,
                 TextColor3 = Theme.Text,
-                TextSize = 12,
+                TextSize = 13,
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 12, 0, 0),
-                Size = UDim2.new(1, -45, 1, 0),
+                Position = UDim2.new(0, 14, 0, 0),
+                Size = UDim2.new(1, -50, 1, 0),
                 TextXAlignment = Enum.TextXAlignment.Left,
                 Parent = Button
             })
@@ -1200,20 +1254,20 @@ function Stellar:CreateWindow(config)
                 Text = "›",
                 Font = Enum.Font.GothamBold,
                 TextColor3 = Theme.Primary,
-                TextSize = 18,
+                TextSize = 20,
                 BackgroundTransparency = 1,
-                Position = UDim2.new(1, -25, 0, 0),
-                Size = UDim2.new(0, 15, 1, 0),
+                Position = UDim2.new(1, -28, 0, -1),
+                Size = UDim2.new(0, 18, 1, 0),
                 Parent = Button
             })
             
             Button.MouseEnter:Connect(function()
-                Tween(Button, {BackgroundColor3 = Theme.Elevated}, 0.12)
-                Tween(Arrow, {Position = UDim2.new(1, -22, 0, 0)}, 0.12)
+                Tween(Button, {BackgroundColor3 = Theme.Elevated}, 0.1)
+                Tween(Arrow, {Position = UDim2.new(1, -24, 0, -1)}, 0.1)
             end)
             Button.MouseLeave:Connect(function()
-                Tween(Button, {BackgroundColor3 = Theme.Tertiary}, 0.12)
-                Tween(Arrow, {Position = UDim2.new(1, -25, 0, 0)}, 0.12)
+                Tween(Button, {BackgroundColor3 = Theme.Tertiary}, 0.1)
+                Tween(Arrow, {Position = UDim2.new(1, -28, 0, -1)}, 0.1)
             end)
             Button.MouseButton1Click:Connect(function()
                 pcall(Callback)
@@ -1230,57 +1284,57 @@ function Stellar:CreateWindow(config)
             
             local ToggleFrame = Create("TextButton", {
                 BackgroundColor3 = Theme.Tertiary,
-                Size = UDim2.new(1, 0, 0, 38),
+                Size = UDim2.new(1, 0, 0, 40),
                 Text = "",
                 AutoButtonColor = false,
                 Parent = Page
             })
-            Corner(ToggleFrame, 7)
+            Corner(ToggleFrame, 8)
             
             Create("TextLabel", {
                 Text = Name,
                 Font = Enum.Font.GothamMedium,
                 TextColor3 = Theme.Text,
-                TextSize = 12,
+                TextSize = 13,
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 12, 0, 0),
-                Size = UDim2.new(1, -60, 1, 0),
+                Position = UDim2.new(0, 14, 0, 0),
+                Size = UDim2.new(1, -65, 1, 0),
                 TextXAlignment = Enum.TextXAlignment.Left,
                 Parent = ToggleFrame
             })
             
             local SwitchBg = Create("Frame", {
                 BackgroundColor3 = Toggled and Theme.Primary or Theme.Elevated,
-                Size = UDim2.new(0, 36, 0, 20),
-                Position = UDim2.new(1, -46, 0.5, -10),
+                Size = UDim2.new(0, 40, 0, 22),
+                Position = UDim2.new(1, -52, 0.5, -11),
                 Parent = ToggleFrame
             })
-            Corner(SwitchBg, 10)
+            Corner(SwitchBg, 11)
             
             local SwitchDot = Create("Frame", {
                 BackgroundColor3 = Theme.Text,
-                Size = UDim2.new(0, 14, 0, 14),
-                Position = Toggled and UDim2.new(1, -17, 0.5, -7) or UDim2.new(0, 3, 0.5, -7),
+                Size = UDim2.new(0, 16, 0, 16),
+                Position = Toggled and UDim2.new(1, -19, 0.5, -8) or UDim2.new(0, 3, 0.5, -8),
                 Parent = SwitchBg
             })
-            Corner(SwitchDot, 7)
+            Corner(SwitchDot, 8)
             
             local function Update()
                 if Toggled then
-                    Tween(SwitchBg, {BackgroundColor3 = Theme.Primary}, 0.18)
-                    Tween(SwitchDot, {Position = UDim2.new(1, -17, 0.5, -7)}, 0.18, Enum.EasingStyle.Back)
+                    Tween(SwitchBg, {BackgroundColor3 = Theme.Primary}, 0.15)
+                    Tween(SwitchDot, {Position = UDim2.new(1, -19, 0.5, -8)}, 0.15, Enum.EasingStyle.Back)
                 else
-                    Tween(SwitchBg, {BackgroundColor3 = Theme.Elevated}, 0.18)
-                    Tween(SwitchDot, {Position = UDim2.new(0, 3, 0.5, -7)}, 0.18, Enum.EasingStyle.Back)
+                    Tween(SwitchBg, {BackgroundColor3 = Theme.Elevated}, 0.15)
+                    Tween(SwitchDot, {Position = UDim2.new(0, 3, 0.5, -8)}, 0.15, Enum.EasingStyle.Back)
                 end
                 pcall(Callback, Toggled)
             end
             
             ToggleFrame.MouseEnter:Connect(function()
-                Tween(ToggleFrame, {BackgroundColor3 = Theme.Elevated}, 0.12)
+                Tween(ToggleFrame, {BackgroundColor3 = Theme.Elevated}, 0.1)
             end)
             ToggleFrame.MouseLeave:Connect(function()
-                Tween(ToggleFrame, {BackgroundColor3 = Theme.Tertiary}, 0.12)
+                Tween(ToggleFrame, {BackgroundColor3 = Theme.Tertiary}, 0.1)
             end)
             ToggleFrame.MouseButton1Click:Connect(function()
                 Toggled = not Toggled
@@ -1305,19 +1359,19 @@ function Stellar:CreateWindow(config)
             
             local SliderFrame = Create("Frame", {
                 BackgroundColor3 = Theme.Tertiary,
-                Size = UDim2.new(1, 0, 0, 50),
+                Size = UDim2.new(1, 0, 0, 54),
                 Parent = Page
             })
-            Corner(SliderFrame, 7)
+            Corner(SliderFrame, 8)
             
             Create("TextLabel", {
                 Text = Name,
                 Font = Enum.Font.GothamMedium,
                 TextColor3 = Theme.Text,
-                TextSize = 12,
+                TextSize = 13,
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 12, 0, 8),
-                Size = UDim2.new(1, -60, 0, 14),
+                Position = UDim2.new(0, 14, 0, 10),
+                Size = UDim2.new(1, -70, 0, 16),
                 TextXAlignment = Enum.TextXAlignment.Left,
                 Parent = SliderFrame
             })
@@ -1326,18 +1380,18 @@ function Stellar:CreateWindow(config)
                 Text = tostring(Value),
                 Font = Enum.Font.GothamBold,
                 TextColor3 = Theme.Primary,
-                TextSize = 12,
+                TextSize = 13,
                 BackgroundTransparency = 1,
-                Position = UDim2.new(1, -45, 0, 8),
-                Size = UDim2.new(0, 33, 0, 14),
+                Position = UDim2.new(1, -50, 0, 10),
+                Size = UDim2.new(0, 38, 0, 16),
                 TextXAlignment = Enum.TextXAlignment.Right,
                 Parent = SliderFrame
             })
             
             local SliderBar = Create("TextButton", {
                 BackgroundColor3 = Theme.Elevated,
-                Size = UDim2.new(1, -24, 0, 5),
-                Position = UDim2.new(0, 12, 0, 32),
+                Size = UDim2.new(1, -28, 0, 6),
+                Position = UDim2.new(0, 14, 0, 36),
                 Text = "",
                 AutoButtonColor = false,
                 Parent = SliderFrame
@@ -1353,12 +1407,12 @@ function Stellar:CreateWindow(config)
             
             local Knob = Create("Frame", {
                 BackgroundColor3 = Theme.Text,
-                Size = UDim2.new(0, 12, 0, 12),
-                Position = UDim2.new((Value - Min) / (Max - Min), -6, 0.5, -6),
+                Size = UDim2.new(0, 14, 0, 14),
+                Position = UDim2.new((Value - Min) / (Max - Min), -7, 0.5, -7),
                 ZIndex = 2,
                 Parent = SliderBar
             })
-            Corner(Knob, 6)
+            Corner(Knob, 7)
             
             local dragging = false
             
@@ -1367,7 +1421,7 @@ function Stellar:CreateWindow(config)
                 Value = math.floor(Min + ((Max - Min) * percent))
                 
                 Tween(Fill, {Size = UDim2.new(percent, 0, 1, 0)}, 0.04)
-                Tween(Knob, {Position = UDim2.new(percent, -6, 0.5, -6)}, 0.04)
+                Tween(Knob, {Position = UDim2.new(percent, -7, 0.5, -7)}, 0.04)
                 ValueLabel.Text = tostring(Value)
                 
                 pcall(Callback, Value)
@@ -1397,7 +1451,7 @@ function Stellar:CreateWindow(config)
                     Value = math.clamp(v, Min, Max)
                     local percent = (Value - Min) / (Max - Min)
                     Tween(Fill, {Size = UDim2.new(percent, 0, 1, 0)}, 0.15)
-                    Tween(Knob, {Position = UDim2.new(percent, -6, 0.5, -6)}, 0.15)
+                    Tween(Knob, {Position = UDim2.new(percent, -7, 0.5, -7)}, 0.15)
                     ValueLabel.Text = tostring(Value)
                     pcall(Callback, Value)
                 end,
@@ -1417,15 +1471,15 @@ function Stellar:CreateWindow(config)
             
             local DropFrame = Create("Frame", {
                 BackgroundColor3 = Theme.Tertiary,
-                Size = UDim2.new(1, 0, 0, 38),
+                Size = UDim2.new(1, 0, 0, 40),
                 ClipsDescendants = true,
                 Parent = Page
             })
-            Corner(DropFrame, 7)
+            Corner(DropFrame, 8)
             
             local DropBtn = Create("TextButton", {
                 BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 0, 38),
+                Size = UDim2.new(1, 0, 0, 40),
                 Text = "",
                 Parent = DropFrame
             })
@@ -1434,10 +1488,10 @@ function Stellar:CreateWindow(config)
                 Text = Name,
                 Font = Enum.Font.GothamMedium,
                 TextColor3 = Theme.Text,
-                TextSize = 12,
+                TextSize = 13,
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 12, 0, 0),
-                Size = UDim2.new(0.5, 0, 0, 38),
+                Position = UDim2.new(0, 14, 0, 0),
+                Size = UDim2.new(0.5, 0, 0, 40),
                 TextXAlignment = Enum.TextXAlignment.Left,
                 Parent = DropBtn
             })
@@ -1446,10 +1500,10 @@ function Stellar:CreateWindow(config)
                 Text = Selected or "...",
                 Font = Enum.Font.Gotham,
                 TextColor3 = Theme.TextDark,
-                TextSize = 11,
+                TextSize = 12,
                 BackgroundTransparency = 1,
                 Position = UDim2.new(0.5, 0, 0, 0),
-                Size = UDim2.new(0.5, -32, 0, 38),
+                Size = UDim2.new(0.5, -36, 0, 40),
                 TextXAlignment = Enum.TextXAlignment.Right,
                 Parent = DropBtn
             })
@@ -1458,25 +1512,25 @@ function Stellar:CreateWindow(config)
                 Text = "›",
                 Font = Enum.Font.GothamBold,
                 TextColor3 = Theme.TextMuted,
-                TextSize = 14,
+                TextSize = 16,
                 Rotation = 90,
                 BackgroundTransparency = 1,
-                Position = UDim2.new(1, -22, 0, 0),
-                Size = UDim2.new(0, 12, 0, 38),
+                Position = UDim2.new(1, -24, 0, 0),
+                Size = UDim2.new(0, 14, 0, 40),
                 Parent = DropBtn
             })
             
             local OptionsFrame = Create("Frame", {
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 0, 0, 42),
-                Size = UDim2.new(1, 0, 0, #Options * 30 + 6),
+                Position = UDim2.new(0, 0, 0, 44),
+                Size = UDim2.new(1, 0, 0, #Options * 32 + 8),
                 Parent = DropFrame
             })
-            Padding(OptionsFrame, 3, 6, 6, 3)
+            Padding(OptionsFrame, 4, 8, 8, 4)
             
             Create("UIListLayout", {
                 SortOrder = Enum.SortOrder.LayoutOrder,
-                Padding = UDim.new(0, 2),
+                Padding = UDim.new(0, 3),
                 Parent = OptionsFrame
             })
             
@@ -1484,37 +1538,37 @@ function Stellar:CreateWindow(config)
                 local OptionBtn = Create("TextButton", {
                     BackgroundColor3 = Theme.Elevated,
                     BackgroundTransparency = 1,
-                    Size = UDim2.new(1, 0, 0, 28),
+                    Size = UDim2.new(1, 0, 0, 30),
                     Text = option,
                     Font = Enum.Font.Gotham,
                     TextColor3 = Theme.TextDark,
-                    TextSize = 11,
+                    TextSize = 12,
                     AutoButtonColor = false,
                     Parent = OptionsFrame
                 })
-                Corner(OptionBtn, 5)
+                Corner(OptionBtn, 6)
                 
                 OptionBtn.MouseEnter:Connect(function()
-                    Tween(OptionBtn, {BackgroundTransparency = 0.5, TextColor3 = Theme.Text}, 0.1)
+                    Tween(OptionBtn, {BackgroundTransparency = 0.5, TextColor3 = Theme.Text}, 0.08)
                 end)
                 OptionBtn.MouseLeave:Connect(function()
-                    Tween(OptionBtn, {BackgroundTransparency = 1, TextColor3 = Theme.TextDark}, 0.1)
+                    Tween(OptionBtn, {BackgroundTransparency = 1, TextColor3 = Theme.TextDark}, 0.08)
                 end)
                 OptionBtn.MouseButton1Click:Connect(function()
                     Selected = option
                     SelectedLabel.Text = option
                     Open = false
-                    Tween(DropFrame, {Size = UDim2.new(1, 0, 0, 38)}, 0.18)
-                    Tween(Arrow, {Rotation = 90}, 0.18)
+                    Tween(DropFrame, {Size = UDim2.new(1, 0, 0, 40)}, 0.15)
+                    Tween(Arrow, {Rotation = 90}, 0.15)
                     pcall(Callback, option)
                 end)
             end
             
             DropBtn.MouseButton1Click:Connect(function()
                 Open = not Open
-                local targetHeight = Open and (48 + #Options * 30 + 6) or 38
-                Tween(DropFrame, {Size = UDim2.new(1, 0, 0, targetHeight)}, 0.2)
-                Tween(Arrow, {Rotation = Open and 270 or 90}, 0.2)
+                local targetHeight = Open and (52 + #Options * 32 + 8) or 40
+                Tween(DropFrame, {Size = UDim2.new(1, 0, 0, targetHeight)}, 0.18)
+                Tween(Arrow, {Rotation = Open and 270 or 90}, 0.18)
             end)
             
             return {
@@ -1529,25 +1583,25 @@ function Stellar:CreateWindow(config)
                         local OptionBtn = Create("TextButton", {
                             BackgroundColor3 = Theme.Elevated,
                             BackgroundTransparency = 1,
-                            Size = UDim2.new(1, 0, 0, 28),
+                            Size = UDim2.new(1, 0, 0, 30),
                             Text = option,
                             Font = Enum.Font.Gotham,
                             TextColor3 = Theme.TextDark,
-                            TextSize = 11,
+                            TextSize = 12,
                             AutoButtonColor = false,
                             Parent = OptionsFrame
                         })
-                        Corner(OptionBtn, 5)
-                        OptionBtn.MouseEnter:Connect(function() Tween(OptionBtn, {BackgroundTransparency = 0.5, TextColor3 = Theme.Text}, 0.1) end)
-                        OptionBtn.MouseLeave:Connect(function() Tween(OptionBtn, {BackgroundTransparency = 1, TextColor3 = Theme.TextDark}, 0.1) end)
+                        Corner(OptionBtn, 6)
+                        OptionBtn.MouseEnter:Connect(function() Tween(OptionBtn, {BackgroundTransparency = 0.5, TextColor3 = Theme.Text}, 0.08) end)
+                        OptionBtn.MouseLeave:Connect(function() Tween(OptionBtn, {BackgroundTransparency = 1, TextColor3 = Theme.TextDark}, 0.08) end)
                         OptionBtn.MouseButton1Click:Connect(function()
                             Selected = option SelectedLabel.Text = option Open = false
-                            Tween(DropFrame, {Size = UDim2.new(1, 0, 0, 38)}, 0.18)
-                            Tween(Arrow, {Rotation = 90}, 0.18)
+                            Tween(DropFrame, {Size = UDim2.new(1, 0, 0, 40)}, 0.15)
+                            Tween(Arrow, {Rotation = 90}, 0.15)
                             pcall(Callback, option)
                         end)
                     end
-                    OptionsFrame.Size = UDim2.new(1, 0, 0, #Options * 30 + 6)
+                    OptionsFrame.Size = UDim2.new(1, 0, 0, #Options * 32 + 8)
                 end
             }
         end
@@ -1560,18 +1614,18 @@ function Stellar:CreateWindow(config)
             
             local InputFrame = Create("Frame", {
                 BackgroundColor3 = Theme.Tertiary,
-                Size = UDim2.new(1, 0, 0, 38),
+                Size = UDim2.new(1, 0, 0, 40),
                 Parent = Page
             })
-            Corner(InputFrame, 7)
+            Corner(InputFrame, 8)
             
             Create("TextLabel", {
                 Text = Name,
                 Font = Enum.Font.GothamMedium,
                 TextColor3 = Theme.Text,
-                TextSize = 12,
+                TextSize = 13,
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 12, 0, 0),
+                Position = UDim2.new(0, 14, 0, 0),
                 Size = UDim2.new(0.42, 0, 1, 0),
                 TextXAlignment = Enum.TextXAlignment.Left,
                 Parent = InputFrame
@@ -1579,25 +1633,25 @@ function Stellar:CreateWindow(config)
             
             local InputBox = Create("TextBox", {
                 BackgroundColor3 = Theme.Elevated,
-                Size = UDim2.new(0.52, -16, 0, 26),
-                Position = UDim2.new(0.48, 0, 0.5, -13),
+                Size = UDim2.new(0.52, -18, 0, 28),
+                Position = UDim2.new(0.48, 0, 0.5, -14),
                 Text = "",
                 PlaceholderText = Placeholder,
                 PlaceholderColor3 = Theme.TextMuted,
                 Font = Enum.Font.Gotham,
                 TextColor3 = Theme.Text,
-                TextSize = 11,
+                TextSize = 12,
                 ClearTextOnFocus = false,
                 Parent = InputFrame
             })
-            Corner(InputBox, 5)
-            Padding(InputBox, 0, 8, 8, 0)
+            Corner(InputBox, 6)
+            Padding(InputBox, 0, 10, 10, 0)
             
             InputBox.Focused:Connect(function()
-                Tween(InputBox, {BackgroundColor3 = Theme.Hover}, 0.12)
+                Tween(InputBox, {BackgroundColor3 = Theme.Hover}, 0.1)
             end)
             InputBox.FocusLost:Connect(function(enter)
-                Tween(InputBox, {BackgroundColor3 = Theme.Elevated}, 0.12)
+                Tween(InputBox, {BackgroundColor3 = Theme.Elevated}, 0.1)
                 if enter then pcall(Callback, InputBox.Text) end
             end)
             
@@ -1618,21 +1672,21 @@ function Stellar:CreateWindow(config)
             
             local KeybindFrame = Create("TextButton", {
                 BackgroundColor3 = Theme.Tertiary,
-                Size = UDim2.new(1, 0, 0, 38),
+                Size = UDim2.new(1, 0, 0, 40),
                 Text = "",
                 AutoButtonColor = false,
                 Parent = Page
             })
-            Corner(KeybindFrame, 7)
+            Corner(KeybindFrame, 8)
             
             Create("TextLabel", {
                 Text = Name,
                 Font = Enum.Font.GothamMedium,
                 TextColor3 = Theme.Text,
-                TextSize = 12,
+                TextSize = 13,
                 BackgroundTransparency = 1,
-                Position = UDim2.new(0, 12, 0, 0),
-                Size = UDim2.new(1, -90, 1, 0),
+                Position = UDim2.new(0, 14, 0, 0),
+                Size = UDim2.new(1, -95, 1, 0),
                 TextXAlignment = Enum.TextXAlignment.Left,
                 Parent = KeybindFrame
             })
@@ -1641,26 +1695,26 @@ function Stellar:CreateWindow(config)
                 Text = CurrentKey.Name,
                 Font = Enum.Font.GothamMedium,
                 TextColor3 = Theme.Primary,
-                TextSize = 10,
+                TextSize = 11,
                 BackgroundColor3 = Theme.Primary,
-                BackgroundTransparency = 0.9,
-                Position = UDim2.new(1, -70, 0.5, -11),
-                Size = UDim2.new(0, 58, 0, 22),
+                BackgroundTransparency = 0.88,
+                Position = UDim2.new(1, -78, 0.5, -12),
+                Size = UDim2.new(0, 66, 0, 24),
                 Parent = KeybindFrame
             })
-            Corner(KeyLabel, 5)
+            Corner(KeyLabel, 6)
             
             KeybindFrame.MouseEnter:Connect(function()
-                Tween(KeybindFrame, {BackgroundColor3 = Theme.Elevated}, 0.12)
+                Tween(KeybindFrame, {BackgroundColor3 = Theme.Elevated}, 0.1)
             end)
             KeybindFrame.MouseLeave:Connect(function()
-                Tween(KeybindFrame, {BackgroundColor3 = Theme.Tertiary}, 0.12)
+                Tween(KeybindFrame, {BackgroundColor3 = Theme.Tertiary}, 0.1)
             end)
             
             KeybindFrame.MouseButton1Click:Connect(function()
                 Listening = true
                 KeyLabel.Text = "..."
-                Tween(KeyLabel, {BackgroundTransparency = 0.75}, 0.12)
+                Tween(KeyLabel, {BackgroundTransparency = 0.7}, 0.1)
             end)
             
             UserInputService.InputBegan:Connect(function(input, processed)
@@ -1668,7 +1722,7 @@ function Stellar:CreateWindow(config)
                     if input.UserInputType == Enum.UserInputType.Keyboard then
                         CurrentKey = input.KeyCode
                         KeyLabel.Text = CurrentKey.Name
-                        Tween(KeyLabel, {BackgroundTransparency = 0.9}, 0.12)
+                        Tween(KeyLabel, {BackgroundTransparency = 0.88}, 0.1)
                         Listening = false
                     end
                 elseif not processed and input.KeyCode == CurrentKey then
@@ -1693,12 +1747,12 @@ function Stellar:CreateWindow(config)
                 AutomaticSize = Enum.AutomaticSize.Y,
                 Parent = Page
             })
-            Corner(Para, 7)
-            Padding(Para, 12, 12, 12, 12)
+            Corner(Para, 8)
+            Padding(Para, 14, 14, 14, 14)
             
             Create("UIListLayout", {
                 SortOrder = Enum.SortOrder.LayoutOrder,
-                Padding = UDim.new(0, 4),
+                Padding = UDim.new(0, 5),
                 Parent = Para
             })
             
@@ -1706,9 +1760,9 @@ function Stellar:CreateWindow(config)
                 Text = Title,
                 Font = Enum.Font.GothamBold,
                 TextColor3 = Theme.Text,
-                TextSize = 12,
+                TextSize = 13,
                 BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 0, 14),
+                Size = UDim2.new(1, 0, 0, 15),
                 TextXAlignment = Enum.TextXAlignment.Left,
                 LayoutOrder = 1,
                 Parent = Para
@@ -1718,7 +1772,7 @@ function Stellar:CreateWindow(config)
                 Text = Content,
                 Font = Enum.Font.Gotham,
                 TextColor3 = Theme.TextDark,
-                TextSize = 11,
+                TextSize = 12,
                 BackgroundTransparency = 1,
                 Size = UDim2.new(1, 0, 0, 0),
                 AutomaticSize = Enum.AutomaticSize.Y,
@@ -1732,7 +1786,7 @@ function Stellar:CreateWindow(config)
         function Tab:Divider()
             Create("Frame", {
                 BackgroundColor3 = Theme.Divider,
-                BackgroundTransparency = 0.5,
+                BackgroundTransparency = 0.4,
                 Size = UDim2.new(1, 0, 0, 1),
                 BorderSizePixel = 0,
                 Parent = Page
@@ -1744,9 +1798,9 @@ function Stellar:CreateWindow(config)
                 Text = text,
                 Font = Enum.Font.Gotham,
                 TextColor3 = Theme.TextDark,
-                TextSize = 11,
+                TextSize = 12,
                 BackgroundTransparency = 1,
-                Size = UDim2.new(1, 0, 0, 16),
+                Size = UDim2.new(1, 0, 0, 18),
                 TextXAlignment = Enum.TextXAlignment.Left,
                 Parent = Page
             })
