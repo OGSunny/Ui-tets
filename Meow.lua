@@ -1,20 +1,3 @@
---[[
-    ╔═══════════════════════════════════════════════════════════════╗
-    ║                    STELLAR UI LIBRARY v4.1                    ║
-    ║               Premium Visual Polish Edition                    ║
-    ╚═══════════════════════════════════════════════════════════════╝
-    
-    VISUAL FIXES APPLIED:
-    - Subtle strokes (1px, 0.3 transparency)
-    - Consistent 12px padding
-    - Smooth Back EaseOut animations (0.5s)
-    - Reduced shadow intensity (0.6 transparency)
-    - Faster hover effects (0.15s)
-    - Better background contrast
-    - Polished elements (buttons, sliders, toggles, dropdowns)
-    - Refined animations throughout
-]]
-
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
@@ -1721,30 +1704,29 @@ function Library:CreateWindow(config)
                 keyBtn.TextColor3 = Theme.Primary
             end)
             
-                 element.Connections:Connect(UserInputService.InputBegan, function(input, gameProcessed)
-                if element.Listening and input.UserInputType == Enum.UserInputType.Keyboard then
-                    element.Value = input.KeyCode.Name
-                    keyBtn.Text = input.KeyCode.Name
-                    element.Listening = false
-                    Tween(keyBtn, {BackgroundColor3 = Theme.Tertiary}, Anim.ColorChange)
-                    keyBtn.TextColor3 = Theme.Accent
-                    
-                    -- Visual feedback for successful keybind
-                    Tween(keyStroke, {Color = Theme.Success, Transparency = 0}, Anim.ColorChange)
-                    task.delay(0.5, function()
-                        Tween(keyStroke, {Color = Theme.Accent, Transparency = 0.5}, Anim.SizeChange)
-                    end)
-                    
-                    Library:Notify({
-                        Title = "Keybind Set",
-                        Content = "Keybind set to: " .. input.KeyCode.Name,
-                        Icon = "check",
-                        Time = 2
-                    })
-                elseif not gameProcessed and not element.Listening and input.KeyCode.Name == element.Value then
-                    SafeCallback(callback, element.Value)
-                end
-            end)
+            element.Connections:Connect(UserInputService.InputBegan, function(input, gameProcessed)
+    if element.Listening and input.UserInputType == Enum.UserInputType.Keyboard then
+        element.Value = input.KeyCode.Name
+        keyBtn.Text = input.KeyCode.Name
+        element.Listening = false
+        Tween(keyBtn, {BackgroundColor3 = Theme.Tertiary}, Anim.ColorChange)
+        keyBtn.TextColor3 = Theme.Accent
+        
+        Tween(keyStroke, {Color = Theme.Success, Transparency = 0}, Anim.ColorChange)
+        task.delay(0.5, function()
+            Tween(keyStroke, {Color = Theme.Accent, Transparency = 0.5}, Anim.SizeChange)
+        end)
+        
+        Library:Notify({
+            Title = "Keybind Set",
+            Content = "Keybind set to: " .. input.KeyCode.Name,
+            Icon = "check",
+            Time = 2
+        })
+    elseif not gameProcessed and not element.Listening and input.KeyCode.Name == element.Value then
+        SafeCallback(callback, element.Value)
+    end
+end)
             
             element.Connections:Connect(container.MouseEnter, function()
                 Tween(container, {BackgroundColor3 = Theme.Hover}, Anim.ElementHover)
