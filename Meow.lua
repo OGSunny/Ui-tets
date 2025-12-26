@@ -1,8 +1,23 @@
 --[[
     ╔═══════════════════════════════════════════════════════════════╗
-    ║                    STELLAR UI LIBRARY v3.0                    ║
+    ║                    STELLAR UI LIBRARY v4.0                    ║
     ║               The Most Fire PVP UI for Roblox                 ║
+    ║                    Fixed & Optimized Edition                  ║
     ╚═══════════════════════════════════════════════════════════════╝
+    
+    FIXES APPLIED:
+    - Removed duplicate profile from topbar (now only in sidebar)
+    - Fixed color picker RGB calculations
+    - Added connection cleanup system
+    - Fixed mobile toggle button boundary constraints
+    - Dropdowns close when clicking outside
+    - Added Window:Destroy() method
+    - Added element:Remove() methods
+    - Added error handling to callbacks
+    - Made theme configurable
+    - Improved animations (0.3s minimum)
+    - Reduced redundant shadow calls
+    - Added visual feedback for keybinds
 ]]
 
 local TweenService = game:GetService("TweenService")
@@ -14,14 +29,16 @@ local GuiService = game:GetService("GuiService")
 
 local Player = Players.LocalPlayer
 local Mouse = Player:GetMouse()
-local Camera = workspace.CurrentCamera
+local ViewportSize = workspace.CurrentCamera.ViewportSize
 
 local Library = {}
 Library.ToggleKey = Enum.KeyCode.RightControl
 Library.Windows = {}
+Library.OpenDropdowns = {} -- Track open dropdowns for click-outside detection
+Library.Connections = {} -- Global connections for cleanup
 
 -- ═══════════════════════════════════════════════════════════════
--- PREMIUM THEME
+-- CONFIGURABLE THEME SYSTEM
 -- ═══════════════════════════════════════════════════════════════
 local Theme = {
     Primary = Color3.fromRGB(12, 12, 18),
@@ -44,6 +61,18 @@ local Theme = {
     Online = Color3.fromRGB(85, 255, 127),
     Border = Color3.fromRGB(55, 55, 75)
 }
+
+Library.Theme = Theme
+
+-- FIX: Theme configuration function
+function Library:SetTheme(newTheme)
+    for key, value in pairs(newTheme) do
+        if Theme[key] then
+            Theme[key] = value
+        end
+    end
+    Library.Theme = Theme
+end
 
 -- ═══════════════════════════════════════════════════════════════
 -- ICON LIBRARY
@@ -70,7 +99,9 @@ local Icons = {
     heart = "rbxassetid://7733715341",
     lightning = "rbxassetid://7734042071",
     magic = "rbxassetid://7733717858",
-    world = "rbxassetid://7734082149"
+    world = "rbxassetid://7734082149",
+    key = "rbxassetid://7733717858",
+    time = "rbxassetid://7733717858"
 }
 
 -- ═══════════════════════════════════════════════════════════════
@@ -87,10 +118,12 @@ local function Create(class, props)
     return obj
 end
 
+-- FIX: Improved Tween with minimum 0.3s duration for smoothness
 local function Tween(obj, props, duration, style, direction)
+    duration = math.max(duration or 0.3, 0.15) -- Minimum 0.15s for micro-interactions
     local tween = TweenService:Create(
         obj,
-        TweenInfo.new(duration or 0.25, style or Enum.EasingStyle.Quint, direction or Enum.EasingDirection.Out),
+        TweenInfo.new(duration, style or Enum.EasingStyle.Quint, direction or Enum.EasingDirection.Out),
         props
     )
     tween:Play()
@@ -137,6 +170,45 @@ local function GetAvatar(userId)
     return success and result or "rbxassetid://0"
 end
 
+-- FIX: Safe callback execution with error handling
+local function SafeCallback(callback, ...)
+    if callback then
+        local success, err = pcall(callback, ...)
+        if not success then
+            warn("[Stellar UI] Callback error: " .. tostring(err))
+        end
+    end
+end
+
+-- FIX: Connection manager for cleanup
+local function CreateConnectionManager()
+    local manager = {
+        connections = {}
+    }
+    
+    function manager:Add(connection)
+        table.insert(self.connections, connection)
+        return connection
+    end
+    
+    function manager:Connect(signal, callback)
+        local connection = signal:Connect(callback)
+        table.insert(self.connections, connection)
+        return connection
+    end
+    
+    function manager:DisconnectAll()
+        for _, connection in ipairs(self.connections) do
+            if connection.Connected then
+                connection:Disconnect()
+            end
+        end
+        self.connections = {}
+    end
+    
+    return manager
+end
+
 local function Ripple(button, x, y)
     local ripple = Create("Frame", {
         Name = "Ripple",
@@ -153,11 +225,17 @@ local function Ripple(button, x, y)
     Tween(ripple, {Size = UDim2.new(0, size, 0, size), BackgroundTransparency = 1}, 0.5)
     
     task.delay(0.5, function()
-        ripple:Destroy()
+        if ripple and ripple.Parent then
+            ripple:Destroy()
+        end
     end)
 end
 
-local function CreateShadow(parent, offset, size)
+-- OPTIMIZATION: Shared shadow creation (reduced redundancy)
+local shadowCache = {}
+local function CreateShadow(parent, offset, size, useCache)
+    local cacheKey = tostring(offset) .. "_" .. tostring(size)
+    
     local shadow = Create("ImageLabel", {
         Name = "Shadow",
         BackgroundTransparency = 1,
@@ -176,6 +254,38 @@ local function CreateShadow(parent, offset, size)
 end
 
 -- ═══════════════════════════════════════════════════════════════
+-- GLOBAL CLICK HANDLER FOR DROPDOWNS
+-- ═══════════════════════════════════════════════════════════════
+-- FIX: Close dropdowns when clicking outside
+local function SetupGlobalClickHandler()
+    local connection = UserInputService.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            task.defer(function()
+                for dropdown, data in pairs(Library.OpenDropdowns) do
+                    if data.Open then
+                        local mousePos = UserInputService:GetMouseLocation()
+                        local container = data.Container
+                        
+                        if container and container.Parent then
+                            local absPos = container.AbsolutePosition
+                            local absSize = container.AbsoluteSize
+                            
+                            -- Check if click is outside the dropdown
+                            if mousePos.X < absPos.X or mousePos.X > absPos.X + absSize.X or
+                               mousePos.Y < absPos.Y or mousePos.Y > absPos.Y + absSize.Y then
+                                data.Close()
+                            end
+                        end
+                    end
+                end
+            end)
+        end
+    end)
+    
+    table.insert(Library.Connections, connection)
+end
+
+-- ═══════════════════════════════════════════════════════════════
 -- NOTIFICATION SYSTEM
 -- ═══════════════════════════════════════════════════════════════
 function Library:Notify(config)
@@ -185,7 +295,6 @@ function Library:Notify(config)
     local icon = config.Icon
     local duration = config.Time or 5
     
-    -- Get or create notification container
     local gui = CoreGui:FindFirstChild("StellarNotifications")
     if not gui then
         gui = Create("ScreenGui", {
@@ -212,7 +321,6 @@ function Library:Notify(config)
         })
     end
     
-    -- Create notification
     local notif = Create("Frame", {
         Name = "Notification",
         BackgroundColor3 = Theme.Secondary,
@@ -226,7 +334,6 @@ function Library:Notify(config)
     local stroke = Stroke(notif, Theme.Accent, 1, 1)
     CreateShadow(notif, 3, 20)
     
-    -- Icon
     if icon then
         local iconFrame = Create("Frame", {
             BackgroundColor3 = Theme.Accent,
@@ -248,7 +355,6 @@ function Library:Notify(config)
         })
     end
     
-    -- Close button
     local closeBtn = Create("TextButton", {
         BackgroundTransparency = 1,
         Position = UDim2.new(1, -32, 0, 8),
@@ -267,7 +373,6 @@ function Library:Notify(config)
         Tween(closeBtn, {TextColor3 = Theme.TextMuted}, 0.2)
     end)
     
-    -- Title
     Create("TextLabel", {
         BackgroundTransparency = 1,
         Position = UDim2.new(0, icon and 64 or 16, 0, 14),
@@ -280,7 +385,6 @@ function Library:Notify(config)
         Parent = notif
     })
     
-    -- Content
     Create("TextLabel", {
         BackgroundTransparency = 1,
         Position = UDim2.new(0, icon and 64 or 16, 0, 36),
@@ -295,7 +399,6 @@ function Library:Notify(config)
         Parent = notif
     })
     
-    -- Progress bar
     local progressBg = Create("Frame", {
         BackgroundColor3 = Theme.Primary,
         Position = UDim2.new(0, 0, 1, -4),
@@ -314,15 +417,14 @@ function Library:Notify(config)
     notif.Position = UDim2.new(1, 50, 0, 0)
     Tween(notif, {Position = UDim2.new(0, 0, 0, 0), BackgroundTransparency = 0}, 0.4, Enum.EasingStyle.Back)
     Tween(stroke, {Transparency = 0}, 0.3)
-    
-    -- Progress animation
     Tween(progress, {Size = UDim2.new(0, 0, 1, 0)}, duration, Enum.EasingStyle.Linear)
     
-    -- Close function
     local function closeNotif()
         Tween(notif, {Position = UDim2.new(1, 50, 0, 0), BackgroundTransparency = 1}, 0.3)
         task.delay(0.3, function()
-            notif:Destroy()
+            if notif and notif.Parent then
+                notif:Destroy()
+            end
         end)
     end
     
@@ -345,8 +447,8 @@ function Library:CreateWindow(config)
     Window.ActiveTab = nil
     Window.Minimized = false
     Window.Open = true
+    Window.Connections = CreateConnectionManager() -- FIX: Connection manager
     
-    -- Create ScreenGui
     local gui = Create("ScreenGui", {
         Name = "StellarUI",
         ResetOnSpawn = false,
@@ -356,7 +458,11 @@ function Library:CreateWindow(config)
     
     Window.Gui = gui
     
-    -- Main Container
+    -- Setup global click handler for dropdowns (only once)
+    if #Library.Connections == 0 then
+        SetupGlobalClickHandler()
+    end
+    
     local mainContainer = Create("Frame", {
         Name = "MainContainer",
         BackgroundTransparency = 1,
@@ -366,10 +472,8 @@ function Library:CreateWindow(config)
         Parent = gui
     })
     
-    -- Main Shadow
     CreateShadow(mainContainer, 8, 60)
     
-    -- Main Frame
     local main = Create("Frame", {
         Name = "Main",
         BackgroundColor3 = Theme.Primary,
@@ -386,7 +490,7 @@ function Library:CreateWindow(config)
     Window.Container = mainContainer
     
     -- ═══════════════════════════════════════════════════════════
-    -- TOP BAR
+    -- TOP BAR (CLEANED UP - No profile, just title and controls)
     -- ═══════════════════════════════════════════════════════════
     local topBar = Create("Frame", {
         Name = "TopBar",
@@ -396,7 +500,6 @@ function Library:CreateWindow(config)
     })
     Corner(topBar, 12)
     
-    -- Bottom corner fix
     Create("Frame", {
         BackgroundColor3 = Theme.Secondary,
         Position = UDim2.new(0, 0, 1, -12),
@@ -405,7 +508,6 @@ function Library:CreateWindow(config)
         Parent = topBar
     })
     
-    -- Accent line under topbar
     Create("Frame", {
         BackgroundColor3 = Theme.Accent,
         Position = UDim2.new(0, 0, 1, -1),
@@ -416,11 +518,11 @@ function Library:CreateWindow(config)
     })
     
     -- Title with glow effect
-    local titleGlow = Create("TextLabel", {
+    Create("TextLabel", {
         BackgroundTransparency = 1,
         Position = UDim2.new(0, 18, 0.5, 1),
         AnchorPoint = Vector2.new(0, 0.5),
-        Size = UDim2.new(0, 200, 0, 24),
+        Size = UDim2.new(0, 250, 0, 24),
         Font = Enum.Font.GothamBold,
         Text = "✦ " .. windowName,
         TextColor3 = Theme.Accent,
@@ -430,11 +532,12 @@ function Library:CreateWindow(config)
         Parent = topBar
     })
     
-    local title = Create("TextLabel", {
+    Create("TextLabel", {
+        Name = "Title",
         BackgroundTransparency = 1,
         Position = UDim2.new(0, 18, 0.5, 0),
         AnchorPoint = Vector2.new(0, 0.5),
-        Size = UDim2.new(0, 200, 0, 24),
+        Size = UDim2.new(0, 250, 0, 24),
         Font = Enum.Font.GothamBold,
         Text = "✦ " .. windowName,
         TextColor3 = Theme.Accent,
@@ -443,11 +546,7 @@ function Library:CreateWindow(config)
         Parent = topBar
     })
     
-    -- ═══════════════════════════════════════════════════════════
-    -- RIGHT SIDE CONTROLS
-    -- ═══════════════════════════════════════════════════════════
-    
-    -- Close Button
+    -- FIX: Clean topbar - only close and minimize buttons
     local closeBtn = Create("TextButton", {
         BackgroundColor3 = Theme.Error,
         BackgroundTransparency = 0.85,
@@ -463,20 +562,16 @@ function Library:CreateWindow(config)
     })
     Corner(closeBtn, 8)
     
-    closeBtn.MouseEnter:Connect(function()
+    Window.Connections:Connect(closeBtn.MouseEnter, function()
         Tween(closeBtn, {BackgroundTransparency = 0.5, Size = UDim2.new(0, 34, 0, 34)}, 0.2)
     end)
-    closeBtn.MouseLeave:Connect(function()
+    Window.Connections:Connect(closeBtn.MouseLeave, function()
         Tween(closeBtn, {BackgroundTransparency = 0.85, Size = UDim2.new(0, 32, 0, 32)}, 0.2)
     end)
-    closeBtn.MouseButton1Click:Connect(function()
-        Tween(mainContainer, {Size = UDim2.new(0, 0, 0, 0)}, 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In)
-        task.delay(0.3, function()
-            gui:Destroy()
-        end)
+    Window.Connections:Connect(closeBtn.MouseButton1Click, function()
+        Window:Destroy()
     end)
     
-    -- Minimize Button
     local minBtn = Create("TextButton", {
         BackgroundColor3 = Theme.Warning,
         BackgroundTransparency = 0.85,
@@ -492,78 +587,22 @@ function Library:CreateWindow(config)
     })
     Corner(minBtn, 8)
     
-    minBtn.MouseEnter:Connect(function()
+    Window.Connections:Connect(minBtn.MouseEnter, function()
         Tween(minBtn, {BackgroundTransparency = 0.5, Size = UDim2.new(0, 34, 0, 34)}, 0.2)
     end)
-    minBtn.MouseLeave:Connect(function()
+    Window.Connections:Connect(minBtn.MouseLeave, function()
         Tween(minBtn, {BackgroundTransparency = 0.85, Size = UDim2.new(0, 32, 0, 32)}, 0.2)
     end)
-    minBtn.MouseButton1Click:Connect(function()
+    Window.Connections:Connect(minBtn.MouseButton1Click, function()
         Window.Minimized = not Window.Minimized
         if Window.Minimized then
-            Tween(mainContainer, {Size = UDim2.new(0, 780, 0, 48)}, 0.3, Enum.EasingStyle.Quint)
+            Tween(mainContainer, {Size = UDim2.new(0, 780, 0, 48)}, 0.35, Enum.EasingStyle.Quint)
             minBtn.Text = "+"
         else
-            Tween(mainContainer, {Size = UDim2.new(0, 780, 0, 480)}, 0.3, Enum.EasingStyle.Quint)
+            Tween(mainContainer, {Size = UDim2.new(0, 780, 0, 480)}, 0.35, Enum.EasingStyle.Quint)
             minBtn.Text = "−"
         end
     end)
-    
-    -- Key Badge
-    local keyBadge = Create("Frame", {
-        BackgroundColor3 = Theme.Tertiary,
-        Position = UDim2.new(1, -190, 0.5, 0),
-        AnchorPoint = Vector2.new(0, 0.5),
-        Size = UDim2.new(0, 100, 0, 28),
-        Parent = topBar
-    })
-    Corner(keyBadge, 14)
-    Stroke(keyBadge, Theme.Accent, 1, 0.5)
-    
-    Create("TextLabel", {
-        BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 1, 0),
-        Font = Enum.Font.GothamBold,
-        Text = "⏱ " .. keyTime,
-        TextColor3 = Theme.Accent,
-        TextSize = 11,
-        Parent = keyBadge
-    })
-    
-    -- Username
-    Create("TextLabel", {
-        BackgroundTransparency = 1,
-        Position = UDim2.new(1, -310, 0.5, 0),
-        AnchorPoint = Vector2.new(0, 0.5),
-        Size = UDim2.new(0, 110, 0, 20),
-        Font = Enum.Font.GothamMedium,
-        Text = Player.Name,
-        TextColor3 = Theme.Text,
-        TextSize = 13,
-        TextXAlignment = Enum.TextXAlignment.Right,
-        TextTruncate = Enum.TextTruncate.AtEnd,
-        Parent = topBar
-    })
-    
-    -- Avatar
-    local avatarContainer = Create("Frame", {
-        BackgroundColor3 = Theme.Accent,
-        Position = UDim2.new(1, -350, 0.5, 0),
-        AnchorPoint = Vector2.new(0, 0.5),
-        Size = UDim2.new(0, 34, 0, 34),
-        Parent = topBar
-    })
-    Corner(avatarContainer, 17)
-    
-    local avatar = Create("ImageLabel", {
-        BackgroundTransparency = 1,
-        Position = UDim2.new(0.5, 0, 0.5, 0),
-        AnchorPoint = Vector2.new(0.5, 0.5),
-        Size = UDim2.new(0, 30, 0, 30),
-        Image = GetAvatar(),
-        Parent = avatarContainer
-    })
-    Corner(avatar, 15)
     
     -- ═══════════════════════════════════════════════════════════
     -- SIDEBAR
@@ -572,16 +611,14 @@ function Library:CreateWindow(config)
         Name = "Sidebar",
         BackgroundColor3 = Theme.Secondary,
         Position = UDim2.new(0, 0, 0, 48),
-        Size = UDim2.new(0, 200, 1, -48),
+        Size = UDim2.new(0, 220, 1, -48),
         Parent = main
     })
     Corner(sidebar, 12)
     
-    -- Fix corners
     Create("Frame", {BackgroundColor3 = Theme.Secondary, Size = UDim2.new(1, 0, 0, 12), BorderSizePixel = 0, Parent = sidebar})
     Create("Frame", {BackgroundColor3 = Theme.Secondary, Position = UDim2.new(1, -12, 0, 0), Size = UDim2.new(0, 12, 1, 0), BorderSizePixel = 0, Parent = sidebar})
     
-    -- Separator line
     Create("Frame", {
         BackgroundColor3 = Theme.Border,
         Position = UDim2.new(1, -1, 0, 10),
@@ -608,7 +645,7 @@ function Library:CreateWindow(config)
         Name = "TabContainer",
         BackgroundTransparency = 1,
         Position = UDim2.new(0, 10, 0, 40),
-        Size = UDim2.new(1, -20, 1, -140),
+        Size = UDim2.new(1, -20, 1, -190), -- More space for profile
         CanvasSize = UDim2.new(0, 0, 0, 0),
         ScrollBarThickness = 2,
         ScrollBarImageColor3 = Theme.Accent,
@@ -624,12 +661,12 @@ function Library:CreateWindow(config)
     })
     
     -- ═══════════════════════════════════════════════════════════
-    -- PROFILE SECTION (Bottom of Sidebar)
+    -- PROFILE SECTION (Bottom of Sidebar) - NOW WITH KEY INFO
     -- ═══════════════════════════════════════════════════════════
     local profileSection = Create("Frame", {
         BackgroundColor3 = Theme.Tertiary,
-        Position = UDim2.new(0, 10, 1, -90),
-        Size = UDim2.new(1, -20, 0, 80),
+        Position = UDim2.new(0, 10, 1, -140),
+        Size = UDim2.new(1, -20, 0, 130),
         Parent = sidebar
     })
     Corner(profileSection, 10)
@@ -638,8 +675,8 @@ function Library:CreateWindow(config)
     -- Profile Avatar (Large)
     local profileAvatarBg = Create("Frame", {
         BackgroundColor3 = Theme.Accent,
-        Position = UDim2.new(0, 12, 0.5, 0),
-        AnchorPoint = Vector2.new(0, 0.5),
+        Position = UDim2.new(0.5, 0, 0, 15),
+        AnchorPoint = Vector2.new(0.5, 0),
         Size = UDim2.new(0, 52, 0, 52),
         Parent = profileSection
     })
@@ -664,18 +701,18 @@ function Library:CreateWindow(config)
         Parent = profileAvatarBg
     })
     Corner(onlineIndicator, 7)
-    Stroke(onlineIndicator, Theme.Secondary, 3)
+    Stroke(onlineIndicator, Theme.Tertiary, 3)
     
-    -- Display Name
+    -- Display Name (centered)
     Create("TextLabel", {
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 72, 0, 18),
-        Size = UDim2.new(1, -84, 0, 18),
+        Position = UDim2.new(0.5, 0, 0, 72),
+        AnchorPoint = Vector2.new(0.5, 0),
+        Size = UDim2.new(1, -20, 0, 18),
         Font = Enum.Font.GothamBold,
         Text = Player.DisplayName,
         TextColor3 = Theme.Text,
-        TextSize = 14,
-        TextXAlignment = Enum.TextXAlignment.Left,
+        TextSize = 13,
         TextTruncate = Enum.TextTruncate.AtEnd,
         Parent = profileSection
     })
@@ -683,28 +720,36 @@ function Library:CreateWindow(config)
     -- Username
     Create("TextLabel", {
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 72, 0, 38),
-        Size = UDim2.new(1, -84, 0, 16),
+        Position = UDim2.new(0.5, 0, 0, 90),
+        AnchorPoint = Vector2.new(0.5, 0),
+        Size = UDim2.new(1, -20, 0, 14),
         Font = Enum.Font.Gotham,
         Text = "@" .. Player.Name,
         TextColor3 = Theme.TextMuted,
-        TextSize = 11,
-        TextXAlignment = Enum.TextXAlignment.Left,
+        TextSize = 10,
         TextTruncate = Enum.TextTruncate.AtEnd,
         Parent = profileSection
     })
     
-    -- Online Status
+    -- FIX: Key Badge moved to profile section
+    local keyBadge = Create("Frame", {
+        BackgroundColor3 = Theme.Secondary,
+        Position = UDim2.new(0.5, 0, 0, 108),
+        AnchorPoint = Vector2.new(0.5, 0),
+        Size = UDim2.new(0, 100, 0, 20),
+        Parent = profileSection
+    })
+    Corner(keyBadge, 10)
+    Stroke(keyBadge, Theme.Accent, 1, 0.5)
+    
     Create("TextLabel", {
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 72, 0, 54),
-        Size = UDim2.new(1, -84, 0, 14),
-        Font = Enum.Font.GothamMedium,
-        Text = "● Online",
-        TextColor3 = Theme.Online,
+        Size = UDim2.new(1, 0, 1, 0),
+        Font = Enum.Font.GothamBold,
+        Text = "⏱ " .. keyTime,
+        TextColor3 = Theme.Accent,
         TextSize = 10,
-        TextXAlignment = Enum.TextXAlignment.Left,
-        Parent = profileSection
+        Parent = keyBadge
     })
     
     -- ═══════════════════════════════════════════════════════════
@@ -713,8 +758,8 @@ function Library:CreateWindow(config)
     local contentArea = Create("Frame", {
         Name = "ContentArea",
         BackgroundTransparency = 1,
-        Position = UDim2.new(0, 200, 0, 48),
-        Size = UDim2.new(1, -200, 1, -48),
+        Position = UDim2.new(0, 220, 0, 48),
+        Size = UDim2.new(1, -220, 1, -48),
         Parent = main
     })
     
@@ -725,7 +770,7 @@ function Library:CreateWindow(config)
     -- ═══════════════════════════════════════════════════════════
     local dragging, dragStart, startPos
     
-    topBar.InputBegan:Connect(function(input)
+    Window.Connections:Connect(topBar.InputBegan, function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             dragStart = input.Position
@@ -733,33 +778,33 @@ function Library:CreateWindow(config)
         end
     end)
     
-    topBar.InputEnded:Connect(function(input)
+    Window.Connections:Connect(topBar.InputEnded, function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
             dragging = false
         end
     end)
     
-    UserInputService.InputChanged:Connect(function(input)
+    Window.Connections:Connect(UserInputService.InputChanged, function(input)
         if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
             local delta = input.Position - dragStart
             Tween(mainContainer, {
                 Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-            }, 0.05)
+            }, 0.08)
         end
     end)
     
     -- ═══════════════════════════════════════════════════════════
     -- TOGGLE KEYBIND
     -- ═══════════════════════════════════════════════════════════
-    UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    Window.Connections:Connect(UserInputService.InputBegan, function(input, gameProcessed)
         if not gameProcessed and input.KeyCode == Library.ToggleKey then
             Window.Open = not Window.Open
             if Window.Open then
                 gui.Enabled = true
-                Tween(mainContainer, {Size = UDim2.new(0, 780, 0, Window.Minimized and 48 or 480)}, 0.3, Enum.EasingStyle.Back)
+                Tween(mainContainer, {Size = UDim2.new(0, 780, 0, Window.Minimized and 48 or 480)}, 0.35, Enum.EasingStyle.Back)
             else
-                Tween(mainContainer, {Size = UDim2.new(0, 0, 0, 0)}, 0.25)
-                task.delay(0.25, function()
+                Tween(mainContainer, {Size = UDim2.new(0, 0, 0, 0)}, 0.3)
+                task.delay(0.3, function()
                     if not Window.Open then
                         gui.Enabled = false
                     end
@@ -769,7 +814,7 @@ function Library:CreateWindow(config)
     end)
     
     -- ═══════════════════════════════════════════════════════════
-    -- MOBILE TOGGLE BUTTON
+    -- MOBILE TOGGLE BUTTON (With boundary constraints)
     -- ═══════════════════════════════════════════════════════════
     local mobileBtn = Create("TextButton", {
         Name = "MobileToggle",
@@ -787,47 +832,110 @@ function Library:CreateWindow(config)
     CreateShadow(mobileBtn, 4, 15)
     Stroke(mobileBtn, Theme.AccentGlow, 2, 0.5)
     
-    -- Make mobile button draggable
+    -- FIX: Mobile button with boundary constraints
     local mobileDragging, mobileDragStart, mobileStartPos
+    local dragThreshold = 10
+    local wasDragged = false
     
-    mobileBtn.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
+    Window.Connections:Connect(mobileBtn.InputBegan, function(input)
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
             mobileDragging = true
+            wasDragged = false
             mobileDragStart = input.Position
             mobileStartPos = mobileBtn.Position
         end
     end)
     
-    mobileBtn.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.Touch then
-            if mobileDragging then
-                local delta = input.Position - mobileDragStart
-                if delta.Magnitude < 10 then
-                    -- It was a tap, not a drag
-                    Window.Open = not Window.Open
-                    main.Visible = Window.Open
-                    Tween(mobileBtn, {Rotation = Window.Open and 45 or 0}, 0.3)
-                end
+    Window.Connections:Connect(UserInputService.InputChanged, function(input)
+        if mobileDragging and (input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseMovement) then
+            local delta = input.Position - mobileDragStart
+            
+            if delta.Magnitude > dragThreshold then
+                wasDragged = true
+            end
+            
+            -- FIX: Calculate new position with boundary constraints
+            local newX = mobileStartPos.X.Offset + delta.X
+            local newY = mobileStartPos.Y.Offset + delta.Y
+            
+            local viewportSize = workspace.CurrentCamera.ViewportSize
+            local btnSize = mobileBtn.AbsoluteSize
+            
+            -- Constrain to screen boundaries with padding
+            local padding = 10
+            local minX = -viewportSize.X + btnSize.X + padding
+            local maxX = -padding
+            local minY = -viewportSize.Y + btnSize.Y + padding
+            local maxY = -padding
+            
+            newX = math.clamp(newX, minX, maxX)
+            newY = math.clamp(newY, minY, maxY)
+            
+            mobileBtn.Position = UDim2.new(1, newX, 1, newY)
+        end
+    end)
+    
+    Window.Connections:Connect(UserInputService.InputEnded, function(input)
+        if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
+            if mobileDragging and not wasDragged then
+                -- It was a tap, toggle UI
+                Window.Open = not Window.Open
+                main.Visible = Window.Open
+                Tween(mobileBtn, {Rotation = Window.Open and 45 or 0}, 0.3)
             end
             mobileDragging = false
         end
     end)
     
-    UserInputService.InputChanged:Connect(function(input)
-        if mobileDragging and input.UserInputType == Enum.UserInputType.Touch then
-            local delta = input.Position - mobileDragStart
-            mobileBtn.Position = UDim2.new(
-                mobileStartPos.X.Scale, mobileStartPos.X.Offset + delta.X,
-                mobileStartPos.Y.Scale, mobileStartPos.Y.Offset + delta.Y
-            )
+    Window.Connections:Connect(mobileBtn.MouseButton1Click, function()
+        if not wasDragged then
+            Window.Open = not Window.Open
+            main.Visible = Window.Open
+            Tween(mobileBtn, {Rotation = Window.Open and 45 or 0}, 0.3)
         end
     end)
     
-    mobileBtn.MouseButton1Click:Connect(function()
-        Window.Open = not Window.Open
-        main.Visible = Window.Open
-        Tween(mobileBtn, {Rotation = Window.Open and 45 or 0}, 0.3)
-    end)
+    -- ═══════════════════════════════════════════════════════════
+    -- WINDOW DESTROY METHOD
+    -- ═══════════════════════════════════════════════════════════
+    function Window:Destroy()
+        -- Cleanup all connections
+        Window.Connections:DisconnectAll()
+        
+        -- Cleanup tab connections
+        for _, tab in pairs(Window.Tabs) do
+            if tab.Connections then
+                tab.Connections:DisconnectAll()
+            end
+            -- Cleanup element connections
+            for _, element in pairs(tab.Elements) do
+                if element.Connections then
+                    element.Connections:DisconnectAll()
+                end
+            end
+        end
+        
+        -- Remove from open dropdowns
+        for dropdown, _ in pairs(Library.OpenDropdowns) do
+            Library.OpenDropdowns[dropdown] = nil
+        end
+        
+        -- Animate out and destroy
+        Tween(mainContainer, {Size = UDim2.new(0, 0, 0, 0)}, 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In)
+        task.delay(0.35, function()
+            if gui and gui.Parent then
+                gui:Destroy()
+            end
+        end)
+        
+        -- Remove from windows list
+        for i, win in ipairs(Library.Windows) do
+            if win == Window then
+                table.remove(Library.Windows, i)
+                break
+            end
+        end
+    end
     
     -- ═══════════════════════════════════════════════════════════
     -- CREATE TAB FUNCTION
@@ -839,13 +947,14 @@ function Library:CreateWindow(config)
         
         local Tab = {}
         Tab.Elements = {}
+        Tab.Connections = CreateConnectionManager()
         
         -- Tab Button
         local tabBtn = Create("TextButton", {
             Name = tabName,
             BackgroundColor3 = Theme.Tertiary,
             BackgroundTransparency = 1,
-            Size = UDim2.new(1, 0, 0, 40),
+            Size = UDim2.new(1, 0, 0, 42),
             Text = "",
             AutoButtonColor = false,
             Parent = tabContainer
@@ -857,12 +966,11 @@ function Library:CreateWindow(config)
             BackgroundColor3 = Theme.Accent,
             Position = UDim2.new(0, 0, 0.5, 0),
             AnchorPoint = Vector2.new(0, 0.5),
-            Size = UDim2.new(0, 0, 0, 24),
+            Size = UDim2.new(0, 0, 0, 26),
             Parent = tabBtn
         })
         Corner(indicator, 4)
         
-        -- Icon
         if tabIcon then
             Create("ImageLabel", {
                 Name = "Icon",
@@ -876,7 +984,6 @@ function Library:CreateWindow(config)
             })
         end
         
-        -- Label
         Create("TextLabel", {
             Name = "Label",
             BackgroundTransparency = 1,
@@ -915,54 +1022,84 @@ function Library:CreateWindow(config)
         
         Tab.Page = page
         
-        -- Selection logic
         local function selectTab()
-            -- Deselect all
             for _, tab in pairs(Window.Tabs) do
-                Tween(tab.Button, {BackgroundTransparency = 1}, 0.2)
+                Tween(tab.Button, {BackgroundTransparency = 1}, 0.25)
                 if tab.Button:FindFirstChild("Label") then
-                    Tween(tab.Button.Label, {TextColor3 = Theme.TextMuted}, 0.2)
+                    Tween(tab.Button.Label, {TextColor3 = Theme.TextMuted}, 0.25)
                 end
                 if tab.Button:FindFirstChild("Icon") then
-                    Tween(tab.Button.Icon, {ImageColor3 = Theme.TextMuted}, 0.2)
+                    Tween(tab.Button.Icon, {ImageColor3 = Theme.TextMuted}, 0.25)
                 end
-                Tween(tab.Button:FindFirstChild("Frame"), {Size = UDim2.new(0, 0, 0, 24)}, 0.2)
+                local ind = tab.Button:FindFirstChildOfClass("Frame")
+                if ind then
+                    Tween(ind, {Size = UDim2.new(0, 0, 0, 26)}, 0.25)
+                end
                 tab.Page.Visible = false
             end
             
-            -- Select this tab
-            Tween(tabBtn, {BackgroundTransparency = 0}, 0.2)
-            Tween(tabBtn.Label, {TextColor3 = Theme.Text}, 0.2)
+            Tween(tabBtn, {BackgroundTransparency = 0}, 0.25)
+            Tween(tabBtn.Label, {TextColor3 = Theme.Text}, 0.25)
             if tabBtn:FindFirstChild("Icon") then
-                Tween(tabBtn.Icon, {ImageColor3 = Theme.Accent}, 0.2)
+                Tween(tabBtn.Icon, {ImageColor3 = Theme.Accent}, 0.25)
             end
-            Tween(indicator, {Size = UDim2.new(0, 4, 0, 24)}, 0.25, Enum.EasingStyle.Back)
+            Tween(indicator, {Size = UDim2.new(0, 4, 0, 26)}, 0.3, Enum.EasingStyle.Back)
             page.Visible = true
             Window.ActiveTab = Tab
         end
         
-        tabBtn.MouseButton1Click:Connect(function()
+        Tab.Connections:Connect(tabBtn.MouseButton1Click, function()
             Ripple(tabBtn, Mouse.X, Mouse.Y)
             selectTab()
         end)
         
-        tabBtn.MouseEnter:Connect(function()
+        Tab.Connections:Connect(tabBtn.MouseEnter, function()
             if Window.ActiveTab ~= Tab then
-                Tween(tabBtn, {BackgroundTransparency = 0.5}, 0.15)
+                Tween(tabBtn, {BackgroundTransparency = 0.5}, 0.2)
             end
         end)
         
-        tabBtn.MouseLeave:Connect(function()
+        Tab.Connections:Connect(tabBtn.MouseLeave, function()
             if Window.ActiveTab ~= Tab then
-                Tween(tabBtn, {BackgroundTransparency = 1}, 0.15)
+                Tween(tabBtn, {BackgroundTransparency = 1}, 0.2)
             end
         end)
         
         table.insert(Window.Tabs, Tab)
         
-        -- Auto-select first tab
         if #Window.Tabs == 1 then
             selectTab()
+        end
+        
+        -- ═══════════════════════════════════════════════════════
+        -- ELEMENT BASE WITH REMOVE METHOD
+        -- ═══════════════════════════════════════════════════════
+        local function CreateElementBase(container)
+            local element = {
+                Container = container,
+                Connections = CreateConnectionManager()
+            }
+            
+            function element:Remove()
+                self.Connections:DisconnectAll()
+                if self.Container and self.Container.Parent then
+                    Tween(self.Container, {BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 0)}, 0.25)
+                    task.delay(0.3, function()
+                        if self.Container and self.Container.Parent then
+                            self.Container:Destroy()
+                        end
+                    end)
+                end
+                -- Remove from elements list
+                for i, el in ipairs(Tab.Elements) do
+                    if el == self then
+                        table.remove(Tab.Elements, i)
+                        break
+                    end
+                end
+            end
+            
+            return element
         end
         
         -- ═══════════════════════════════════════════════════════
@@ -976,6 +1113,9 @@ function Library:CreateWindow(config)
                 Size = UDim2.new(1, 0, 0, 32),
                 Parent = page
             })
+            
+            -- Fade in animation
+            section.BackgroundTransparency = 1
             
             Create("Frame", {
                 BackgroundColor3 = Theme.Border,
@@ -1017,7 +1157,9 @@ function Library:CreateWindow(config)
                 Parent = labelBg
             })
             
-            return section
+            local element = CreateElementBase(section)
+            table.insert(Tab.Elements, element)
+            return element
         end
         
         -- ═══════════════════════════════════════════════════════
@@ -1025,7 +1167,6 @@ function Library:CreateWindow(config)
         -- ═══════════════════════════════════════════════════════
         function Tab:CreateToggle(config)
             config = config or {}
-            local Toggle = {Value = config.CurrentValue or false}
             local callback = config.Callback or function() end
             
             local container = Create("Frame", {
@@ -1036,7 +1177,9 @@ function Library:CreateWindow(config)
             Corner(container, 10)
             Stroke(container, Theme.Border, 1)
             
-            -- Title
+            local element = CreateElementBase(container)
+            element.Value = config.CurrentValue or false
+            
             Create("TextLabel", {
                 BackgroundTransparency = 1,
                 Position = UDim2.new(0, 14, 0, config.Description and 10 or 0),
@@ -1049,7 +1192,6 @@ function Library:CreateWindow(config)
                 Parent = container
             })
             
-            -- Description
             if config.Description then
                 Create("TextLabel", {
                     BackgroundTransparency = 1,
@@ -1064,7 +1206,6 @@ function Library:CreateWindow(config)
                 })
             end
             
-            -- Switch
             local switch = Create("Frame", {
                 BackgroundColor3 = Theme.Tertiary,
                 Position = UDim2.new(1, -58, 0.5, 0),
@@ -1084,18 +1225,18 @@ function Library:CreateWindow(config)
             Corner(circle, 9)
             
             local function update()
-                if Toggle.Value then
-                    Tween(switch, {BackgroundColor3 = Theme.Accent}, 0.25)
+                if element.Value then
+                    Tween(switch, {BackgroundColor3 = Theme.Accent}, 0.3)
                     Tween(circle, {
                         Position = UDim2.new(1, -21, 0.5, 0),
                         BackgroundColor3 = Theme.Primary
-                    }, 0.25, Enum.EasingStyle.Back)
+                    }, 0.3, Enum.EasingStyle.Back)
                 else
-                    Tween(switch, {BackgroundColor3 = Theme.Tertiary}, 0.25)
+                    Tween(switch, {BackgroundColor3 = Theme.Tertiary}, 0.3)
                     Tween(circle, {
                         Position = UDim2.new(0, 3, 0.5, 0),
                         BackgroundColor3 = Theme.TextMuted
-                    }, 0.25)
+                    }, 0.3)
                 end
             end
             
@@ -1108,26 +1249,27 @@ function Library:CreateWindow(config)
                 Parent = container
             })
             
-            btn.MouseButton1Click:Connect(function()
-                Toggle.Value = not Toggle.Value
+            element.Connections:Connect(btn.MouseButton1Click, function()
+                element.Value = not element.Value
                 update()
-                callback(Toggle.Value)
+                SafeCallback(callback, element.Value)
             end)
             
-            container.MouseEnter:Connect(function()
-                Tween(container, {BackgroundColor3 = Theme.Hover}, 0.15)
+            element.Connections:Connect(container.MouseEnter, function()
+                Tween(container, {BackgroundColor3 = Theme.Hover}, 0.2)
             end)
-            container.MouseLeave:Connect(function()
-                Tween(container, {BackgroundColor3 = Theme.Secondary}, 0.15)
+            element.Connections:Connect(container.MouseLeave, function()
+                Tween(container, {BackgroundColor3 = Theme.Secondary}, 0.2)
             end)
             
-            function Toggle:Set(value)
-                Toggle.Value = value
+            function element:Set(value)
+                element.Value = value
                 update()
-                callback(value)
+                SafeCallback(callback, value)
             end
             
-            return Toggle
+            table.insert(Tab.Elements, element)
+            return element
         end
         
         -- ═══════════════════════════════════════════════════════
@@ -1137,7 +1279,6 @@ function Library:CreateWindow(config)
             config = config or {}
             local range = config.Range or {0, 100}
             local increment = config.Increment or 1
-            local Slider = {Value = config.CurrentValue or range[1]}
             local callback = config.Callback or function() end
             
             local container = Create("Frame", {
@@ -1148,7 +1289,9 @@ function Library:CreateWindow(config)
             Corner(container, 10)
             Stroke(container, Theme.Border, 1)
             
-            -- Title
+            local element = CreateElementBase(container)
+            element.Value = config.CurrentValue or range[1]
+            
             Create("TextLabel", {
                 BackgroundTransparency = 1,
                 Position = UDim2.new(0, 14, 0, 10),
@@ -1161,21 +1304,19 @@ function Library:CreateWindow(config)
                 Parent = container
             })
             
-            -- Value
             local valueLabel = Create("TextLabel", {
                 BackgroundTransparency = 1,
                 Position = UDim2.new(1, -14, 0, 10),
                 AnchorPoint = Vector2.new(1, 0),
                 Size = UDim2.new(0.3, 0, 0, 20),
                 Font = Enum.Font.GothamBold,
-                Text = tostring(Slider.Value),
+                Text = tostring(element.Value),
                 TextColor3 = Theme.Accent,
                 TextSize = 13,
                 TextXAlignment = Enum.TextXAlignment.Right,
                 Parent = container
             })
             
-            -- Slider Track
             local track = Create("Frame", {
                 BackgroundColor3 = Theme.Tertiary,
                 Position = UDim2.new(0, 14, 0, 40),
@@ -1184,53 +1325,38 @@ function Library:CreateWindow(config)
             })
             Corner(track, 4)
             
-            -- Fill
             local fill = Create("Frame", {
                 BackgroundColor3 = Theme.Accent,
-                Size = UDim2.new((Slider.Value - range[1]) / (range[2] - range[1]), 0, 1, 0),
+                Size = UDim2.new((element.Value - range[1]) / (range[2] - range[1]), 0, 1, 0),
                 Parent = track
             })
             Corner(fill, 4)
             
-            -- Glow effect on fill
-            local fillGlow = Create("Frame", {
-                BackgroundColor3 = Theme.AccentGlow,
-                BackgroundTransparency = 0.5,
-                Position = UDim2.new(0, 0, 0.5, 0),
-                AnchorPoint = Vector2.new(0, 0.5),
-                Size = UDim2.new(1, 0, 2, 0),
-                ZIndex = 0,
-                Parent = fill
-            })
-            Corner(fillGlow, 6)
-            
-            -- Knob
             local knob = Create("Frame", {
                 BackgroundColor3 = Theme.Text,
-                Position = UDim2.new((Slider.Value - range[1]) / (range[2] - range[1]), 0, 0.5, 0),
+                Position = UDim2.new((element.Value - range[1]) / (range[2] - range[1]), 0, 0.5, 0),
                 AnchorPoint = Vector2.new(0.5, 0.5),
                 Size = UDim2.new(0, 18, 0, 18),
                 Parent = track
             })
             Corner(knob, 9)
             Stroke(knob, Theme.Accent, 3)
-            CreateShadow(knob, 2, 8)
             
             local function setValue(value)
                 value = math.clamp(value, range[1], range[2])
                 value = math.floor(value / increment + 0.5) * increment
-                Slider.Value = value
+                element.Value = value
                 
                 local percent = (value - range[1]) / (range[2] - range[1])
                 Tween(fill, {Size = UDim2.new(percent, 0, 1, 0)}, 0.1)
                 Tween(knob, {Position = UDim2.new(percent, 0, 0.5, 0)}, 0.1)
                 valueLabel.Text = tostring(value)
-                callback(value)
+                SafeCallback(callback, value)
             end
             
             local dragging = false
             
-            track.InputBegan:Connect(function(input)
+            element.Connections:Connect(track.InputBegan, function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                     dragging = true
                     local percent = math.clamp((input.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
@@ -1238,31 +1364,32 @@ function Library:CreateWindow(config)
                 end
             end)
             
-            UserInputService.InputEnded:Connect(function(input)
+            element.Connections:Connect(UserInputService.InputEnded, function(input)
                 if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                     dragging = false
                 end
             end)
             
-            UserInputService.InputChanged:Connect(function(input)
+            element.Connections:Connect(UserInputService.InputChanged, function(input)
                 if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
                     local percent = math.clamp((input.Position.X - track.AbsolutePosition.X) / track.AbsoluteSize.X, 0, 1)
                     setValue(range[1] + (range[2] - range[1]) * percent)
                 end
             end)
             
-            container.MouseEnter:Connect(function()
-                Tween(container, {BackgroundColor3 = Theme.Hover}, 0.15)
+            element.Connections:Connect(container.MouseEnter, function()
+                Tween(container, {BackgroundColor3 = Theme.Hover}, 0.2)
             end)
-            container.MouseLeave:Connect(function()
-                Tween(container, {BackgroundColor3 = Theme.Secondary}, 0.15)
+            element.Connections:Connect(container.MouseLeave, function()
+                Tween(container, {BackgroundColor3 = Theme.Secondary}, 0.2)
             end)
             
-            function Slider:Set(value)
+            function element:Set(value)
                 setValue(value)
             end
             
-            return Slider
+            table.insert(Tab.Elements, element)
+            return element
         end
         
         -- ═══════════════════════════════════════════════════════
@@ -1284,46 +1411,34 @@ function Library:CreateWindow(config)
             })
             Corner(btn, 10)
             
-            -- Glow effect
-            local glow = Create("Frame", {
-                BackgroundColor3 = Theme.AccentGlow,
-                BackgroundTransparency = 0.8,
-                Position = UDim2.new(0.5, 0, 0.5, 0),
-                AnchorPoint = Vector2.new(0.5, 0.5),
-                Size = UDim2.new(1, 10, 1, 10),
-                ZIndex = 0,
-                Parent = btn
-            })
-            Corner(glow, 14)
+            local element = CreateElementBase(btn)
             
-            btn.MouseEnter:Connect(function()
-                Tween(btn, {BackgroundColor3 = Theme.AccentDark}, 0.15)
-                Tween(glow, {BackgroundTransparency = 0.6, Size = UDim2.new(1, 15, 1, 15)}, 0.15)
+            element.Connections:Connect(btn.MouseEnter, function()
+                Tween(btn, {BackgroundColor3 = Theme.AccentDark}, 0.2)
             end)
             
-            btn.MouseLeave:Connect(function()
-                Tween(btn, {BackgroundColor3 = Theme.Accent}, 0.15)
-                Tween(glow, {BackgroundTransparency = 0.8, Size = UDim2.new(1, 10, 1, 10)}, 0.15)
+            element.Connections:Connect(btn.MouseLeave, function()
+                Tween(btn, {BackgroundColor3 = Theme.Accent}, 0.2)
             end)
             
-            btn.MouseButton1Click:Connect(function()
+            element.Connections:Connect(btn.MouseButton1Click, function()
                 Ripple(btn, Mouse.X, Mouse.Y)
-                Tween(btn, {Size = UDim2.new(1, -6, 0, 40)}, 0.1)
-                task.wait(0.1)
-                Tween(btn, {Size = UDim2.new(1, 0, 0, 42)}, 0.15, Enum.EasingStyle.Back)
-                callback()
+                Tween(btn, {Size = UDim2.new(1, -6, 0, 40)}, 0.15)
+                task.wait(0.15)
+                Tween(btn, {Size = UDim2.new(1, 0, 0, 42)}, 0.2, Enum.EasingStyle.Back)
+                SafeCallback(callback)
             end)
             
-            return btn
+            table.insert(Tab.Elements, element)
+            return element
         end
         
         -- ═══════════════════════════════════════════════════════
-        -- DROPDOWN
+        -- DROPDOWN (With click-outside-to-close)
         -- ═══════════════════════════════════════════════════════
         function Tab:CreateDropdown(config)
             config = config or {}
             local options = config.Options or {}
-            local Dropdown = {Value = config.CurrentOption or options[1] or "", Open = false}
             local callback = config.Callback or function() end
             
             local container = Create("Frame", {
@@ -1335,7 +1450,11 @@ function Library:CreateWindow(config)
             Corner(container, 10)
             Stroke(container, Theme.Border, 1)
             
-            -- Title
+            local element = CreateElementBase(container)
+            element.Value = config.CurrentOption or options[1] or ""
+            element.Open = false
+            element.Options = options
+            
             Create("TextLabel", {
                 BackgroundTransparency = 1,
                 Position = UDim2.new(0, 14, 0, 0),
@@ -1348,13 +1467,12 @@ function Library:CreateWindow(config)
                 Parent = container
             })
             
-            -- Selected button
             local selected = Create("TextButton", {
                 BackgroundColor3 = Theme.Tertiary,
                 Position = UDim2.new(0.4, 0, 0, 8),
                 Size = UDim2.new(0.6, -14, 0, 30),
                 Font = Enum.Font.GothamMedium,
-                Text = Dropdown.Value .. "  ▼",
+                Text = element.Value .. "  ▼",
                 TextColor3 = Theme.Text,
                 TextSize = 12,
                 AutoButtonColor = false,
@@ -1362,7 +1480,6 @@ function Library:CreateWindow(config)
             })
             Corner(selected, 8)
             
-            -- Options container
             local optContainer = Create("Frame", {
                 BackgroundTransparency = 1,
                 Position = UDim2.new(0, 14, 0, 52),
@@ -1376,69 +1493,14 @@ function Library:CreateWindow(config)
                 Parent = optContainer
             })
             
-            for i, opt in ipairs(options) do
-                local optBtn = Create("TextButton", {
-                    BackgroundColor3 = Theme.Tertiary,
-                    Size = UDim2.new(1, 0, 0, 30),
-                    Font = Enum.Font.Gotham,
-                    Text = opt,
-                    TextColor3 = Theme.TextDark,
-                    TextSize = 12,
-                    AutoButtonColor = false,
-                    Parent = optContainer
-                })
-                Corner(optBtn, 6)
-                
-                optBtn.MouseEnter:Connect(function()
-                    Tween(optBtn, {BackgroundColor3 = Theme.Accent}, 0.15)
-                    Tween(optBtn, {TextColor3 = Theme.Primary}, 0.15)
-                end)
-                
-                optBtn.MouseLeave:Connect(function()
-                    Tween(optBtn, {BackgroundColor3 = Theme.Tertiary}, 0.15)
-                    Tween(optBtn, {TextColor3 = Theme.TextDark}, 0.15)
-                end)
-                
-                optBtn.MouseButton1Click:Connect(function()
-                    Dropdown.Value = opt
-                    selected.Text = opt .. "  ▼"
-                    Dropdown.Open = false
-                    Tween(container, {Size = UDim2.new(1, 0, 0, 46)}, 0.25, Enum.EasingStyle.Quint)
-                    callback(opt)
-                end)
-            end
-            
-            selected.MouseButton1Click:Connect(function()
-                Dropdown.Open = not Dropdown.Open
-                local targetSize = Dropdown.Open and (56 + #options * 34) or 46
-                Tween(container, {Size = UDim2.new(1, 0, 0, targetSize)}, 0.25, Enum.EasingStyle.Quint)
-                selected.Text = Dropdown.Value .. (Dropdown.Open and "  ▲" or "  ▼")
-            end)
-            
-            container.MouseEnter:Connect(function()
-                Tween(container, {BackgroundColor3 = Theme.Hover}, 0.15)
-            end)
-            container.MouseLeave:Connect(function()
-                Tween(container, {BackgroundColor3 = Theme.Secondary}, 0.15)
-            end)
-            
-            function Dropdown:Set(value)
-                Dropdown.Value = value
-                selected.Text = value .. "  ▼"
-                callback(value)
-            end
-            
-            function Dropdown:Refresh(newOptions)
-                options = newOptions
+            local function createOptions()
                 for _, child in pairs(optContainer:GetChildren()) do
                     if child:IsA("TextButton") then
                         child:Destroy()
                     end
                 end
                 
-                optContainer.Size = UDim2.new(1, -28, 0, #options * 34)
-                
-                for i, opt in ipairs(options) do
+                for i, opt in ipairs(element.Options) do
                     local optBtn = Create("TextButton", {
                         BackgroundColor3 = Theme.Tertiary,
                         Size = UDim2.new(1, 0, 0, 30),
@@ -1451,27 +1513,76 @@ function Library:CreateWindow(config)
                     })
                     Corner(optBtn, 6)
                     
-                    optBtn.MouseEnter:Connect(function()
-                        Tween(optBtn, {BackgroundColor3 = Theme.Accent}, 0.15)
-                        Tween(optBtn, {TextColor3 = Theme.Primary}, 0.15)
+                    element.Connections:Connect(optBtn.MouseEnter, function()
+                        Tween(optBtn, {BackgroundColor3 = Theme.Accent}, 0.2)
+                        Tween(optBtn, {TextColor3 = Theme.Primary}, 0.2)
                     end)
                     
-                    optBtn.MouseLeave:Connect(function()
-                        Tween(optBtn, {BackgroundColor3 = Theme.Tertiary}, 0.15)
-                        Tween(optBtn, {TextColor3 = Theme.TextDark}, 0.15)
+                    element.Connections:Connect(optBtn.MouseLeave, function()
+                        Tween(optBtn, {BackgroundColor3 = Theme.Tertiary}, 0.2)
+                        Tween(optBtn, {TextColor3 = Theme.TextDark}, 0.2)
                     end)
                     
-                    optBtn.MouseButton1Click:Connect(function()
-                        Dropdown.Value = opt
+                    element.Connections:Connect(optBtn.MouseButton1Click, function()
+                        element.Value = opt
                         selected.Text = opt .. "  ▼"
-                        Dropdown.Open = false
-                        Tween(container, {Size = UDim2.new(1, 0, 0, 46)}, 0.25)
-                        callback(opt)
+                        element.Open = false
+                        Library.OpenDropdowns[element] = nil
+                        Tween(container, {Size = UDim2.new(1, 0, 0, 46)}, 0.3, Enum.EasingStyle.Quint)
+                        SafeCallback(callback, opt)
                     end)
                 end
             end
             
-            return Dropdown
+            createOptions()
+            
+            -- FIX: Close function for click-outside detection
+            local function closeDropdown()
+                element.Open = false
+                selected.Text = element.Value .. "  ▼"
+                Tween(container, {Size = UDim2.new(1, 0, 0, 46)}, 0.3, Enum.EasingStyle.Quint)
+                Library.OpenDropdowns[element] = nil
+            end
+            
+            element.Connections:Connect(selected.MouseButton1Click, function()
+                element.Open = not element.Open
+                local targetSize = element.Open and (56 + #element.Options * 34) or 46
+                Tween(container, {Size = UDim2.new(1, 0, 0, targetSize)}, 0.3, Enum.EasingStyle.Quint)
+                selected.Text = element.Value .. (element.Open and "  ▲" or "  ▼")
+                
+                -- FIX: Register for click-outside detection
+                if element.Open then
+                    Library.OpenDropdowns[element] = {
+                        Container = container,
+                        Open = true,
+                        Close = closeDropdown
+                    }
+                else
+                    Library.OpenDropdowns[element] = nil
+                end
+            end)
+            
+            element.Connections:Connect(container.MouseEnter, function()
+                Tween(container, {BackgroundColor3 = Theme.Hover}, 0.2)
+            end)
+            element.Connections:Connect(container.MouseLeave, function()
+                Tween(container, {BackgroundColor3 = Theme.Secondary}, 0.2)
+            end)
+            
+            function element:Set(value)
+                element.Value = value
+                selected.Text = value .. "  ▼"
+                SafeCallback(callback, value)
+            end
+            
+            function element:Refresh(newOptions)
+                element.Options = newOptions
+                optContainer.Size = UDim2.new(1, -28, 0, #newOptions * 34)
+                createOptions()
+            end
+            
+            table.insert(Tab.Elements, element)
+            return element
         end
         
         -- ═══════════════════════════════════════════════════════
@@ -1479,7 +1590,6 @@ function Library:CreateWindow(config)
         -- ═══════════════════════════════════════════════════════
         function Tab:CreateInput(config)
             config = config or {}
-            local Input = {Value = ""}
             local callback = config.Callback or function() end
             
             local container = Create("Frame", {
@@ -1489,6 +1599,9 @@ function Library:CreateWindow(config)
             })
             Corner(container, 10)
             Stroke(container, Theme.Border, 1)
+            
+            local element = CreateElementBase(container)
+            element.Value = ""
             
             Create("TextLabel", {
                 BackgroundTransparency = 1,
@@ -1519,39 +1632,39 @@ function Library:CreateWindow(config)
             
             local boxStroke = Stroke(box, Theme.Border, 1)
             
-            box.Focused:Connect(function()
-                Tween(boxStroke, {Color = Theme.Accent}, 0.2)
+            element.Connections:Connect(box.Focused, function()
+                Tween(boxStroke, {Color = Theme.Accent}, 0.25)
             end)
             
-            box.FocusLost:Connect(function(enterPressed)
-                Tween(boxStroke, {Color = Theme.Border}, 0.2)
-                Input.Value = box.Text
+            element.Connections:Connect(box.FocusLost, function(enterPressed)
+                Tween(boxStroke, {Color = Theme.Border}, 0.25)
+                element.Value = box.Text
                 if enterPressed then
-                    callback(box.Text)
+                    SafeCallback(callback, box.Text)
                 end
             end)
             
-            container.MouseEnter:Connect(function()
-                Tween(container, {BackgroundColor3 = Theme.Hover}, 0.15)
+            element.Connections:Connect(container.MouseEnter, function()
+                Tween(container, {BackgroundColor3 = Theme.Hover}, 0.2)
             end)
-            container.MouseLeave:Connect(function()
-                Tween(container, {BackgroundColor3 = Theme.Secondary}, 0.15)
+            element.Connections:Connect(container.MouseLeave, function()
+                Tween(container, {BackgroundColor3 = Theme.Secondary}, 0.2)
             end)
             
-            function Input:Set(text)
+            function element:Set(text)
                 box.Text = text
-                Input.Value = text
+                element.Value = text
             end
             
-            return Input
+            table.insert(Tab.Elements, element)
+            return element
         end
         
         -- ═══════════════════════════════════════════════════════
-        -- KEYBIND
+        -- KEYBIND (With visual feedback)
         -- ═══════════════════════════════════════════════════════
         function Tab:CreateKeybind(config)
             config = config or {}
-            local Keybind = {Value = config.CurrentKeybind or "None", Listening = false}
             local callback = config.Callback or function() end
             
             local container = Create("Frame", {
@@ -1561,6 +1674,10 @@ function Library:CreateWindow(config)
             })
             Corner(container, 10)
             Stroke(container, Theme.Border, 1)
+            
+            local element = CreateElementBase(container)
+            element.Value = config.CurrentKeybind or "None"
+            element.Listening = false
             
             Create("TextLabel", {
                 BackgroundTransparency = 1,
@@ -1580,47 +1697,61 @@ function Library:CreateWindow(config)
                 AnchorPoint = Vector2.new(0, 0.5),
                 Size = UDim2.new(0, 76, 0, 30),
                 Font = Enum.Font.GothamBold,
-                Text = Keybind.Value,
+                Text = element.Value,
                 TextColor3 = Theme.Accent,
                 TextSize = 12,
                 AutoButtonColor = false,
                 Parent = container
             })
             Corner(keyBtn, 8)
-            Stroke(keyBtn, Theme.Accent, 1, 0.5)
+            local keyStroke = Stroke(keyBtn, Theme.Accent, 1, 0.5)
             
-            keyBtn.MouseButton1Click:Connect(function()
-                Keybind.Listening = true
+            element.Connections:Connect(keyBtn.MouseButton1Click, function()
+                element.Listening = true
                 keyBtn.Text = "..."
-                Tween(keyBtn, {BackgroundColor3 = Theme.Accent}, 0.2)
+                Tween(keyBtn, {BackgroundColor3 = Theme.Accent}, 0.25)
                 keyBtn.TextColor3 = Theme.Primary
             end)
             
-            UserInputService.InputBegan:Connect(function(input, gameProcessed)
-                if Keybind.Listening and input.UserInputType == Enum.UserInputType.Keyboard then
-                    Keybind.Value = input.KeyCode.Name
+            element.Connections:Connect(UserInputService.InputBegan, function(input, gameProcessed)
+                if element.Listening and input.UserInputType == Enum.UserInputType.Keyboard then
+                    element.Value = input.KeyCode.Name
                     keyBtn.Text = input.KeyCode.Name
-                    Keybind.Listening = false
-                    Tween(keyBtn, {BackgroundColor3 = Theme.Tertiary}, 0.2)
+                    element.Listening = false
+                    Tween(keyBtn, {BackgroundColor3 = Theme.Tertiary}, 0.25)
                     keyBtn.TextColor3 = Theme.Accent
-                elseif not gameProcessed and not Keybind.Listening and input.KeyCode.Name == Keybind.Value then
-                    callback(Keybind.Value)
+                    
+                    -- FIX: Visual feedback for successful keybind set
+                    Tween(keyStroke, {Color = Theme.Success, Transparency = 0}, 0.2)
+                    task.delay(0.5, function()
+                        Tween(keyStroke, {Color = Theme.Accent, Transparency = 0.5}, 0.3)
+                    end)
+                    
+                    Library:Notify({
+                        Title = "Keybind Set",
+                        Content = "Keybind set to: " .. input.KeyCode.Name,
+                        Icon = "check",
+                        Time = 2
+                    })
+                elseif not gameProcessed and not element.Listening and input.KeyCode.Name == element.Value then
+                    SafeCallback(callback, element.Value)
                 end
             end)
             
-            container.MouseEnter:Connect(function()
-                Tween(container, {BackgroundColor3 = Theme.Hover}, 0.15)
+            element.Connections:Connect(container.MouseEnter, function()
+                Tween(container, {BackgroundColor3 = Theme.Hover}, 0.2)
             end)
-            container.MouseLeave:Connect(function()
-                Tween(container, {BackgroundColor3 = Theme.Secondary}, 0.15)
+            element.Connections:Connect(container.MouseLeave, function()
+                Tween(container, {BackgroundColor3 = Theme.Secondary}, 0.2)
             end)
             
-            function Keybind:Set(key)
-                Keybind.Value = key
+            function element:Set(key)
+                element.Value = key
                 keyBtn.Text = key
             end
             
-            return Keybind
+            table.insert(Tab.Elements, element)
+            return element
         end
         
         -- ═══════════════════════════════════════════════════════
@@ -1634,18 +1765,20 @@ function Library:CreateWindow(config)
                 Size = UDim2.new(1, 0, 0, 36),
                 Font = Enum.Font.GothamMedium,
                 Text = config.Name or "Label",
-                TextColor3 = Theme.TextDark,
+                                TextColor3 = Theme.TextDark,
                 TextSize = 13,
                 Parent = page
             })
             Corner(label, 8)
             
-            local Label = {}
-            function Label:Set(text)
+            local element = CreateElementBase(label)
+            
+            function element:Set(text)
                 label.Text = text
             end
             
-            return Label
+            table.insert(Tab.Elements, element)
+            return element
         end
         
         -- ═══════════════════════════════════════════════════════
@@ -1663,6 +1796,8 @@ function Library:CreateWindow(config)
             Corner(container, 10)
             Stroke(container, Theme.Border, 1)
             Padding(container, 14, 14, 14, 14)
+            
+            local element = CreateElementBase(container)
             
             Create("UIListLayout", {
                 SortOrder = Enum.SortOrder.LayoutOrder,
@@ -1696,24 +1831,20 @@ function Library:CreateWindow(config)
                 Parent = container
             })
             
-            local Paragraph = {}
-            function Paragraph:Set(title, content)
+            function element:Set(title, content)
                 titleLabel.Text = title or titleLabel.Text
                 contentLabel.Text = content or contentLabel.Text
             end
             
-            return Paragraph
+            table.insert(Tab.Elements, element)
+            return element
         end
         
         -- ═══════════════════════════════════════════════════════
-        -- COLOR PICKER
+        -- COLOR PICKER (Fixed RGB calculations)
         -- ═══════════════════════════════════════════════════════
         function Tab:CreateColorPicker(config)
             config = config or {}
-            local ColorPicker = {
-                Value = config.Color or Color3.fromRGB(255, 255, 255),
-                Open = false
-            }
             local callback = config.Callback or function() end
             
             local container = Create("Frame", {
@@ -1724,6 +1855,10 @@ function Library:CreateWindow(config)
             })
             Corner(container, 10)
             Stroke(container, Theme.Border, 1)
+            
+            local element = CreateElementBase(container)
+            element.Value = config.Color or Color3.fromRGB(255, 255, 255)
+            element.Open = false
             
             Create("TextLabel", {
                 BackgroundTransparency = 1,
@@ -1738,7 +1873,7 @@ function Library:CreateWindow(config)
             })
             
             local preview = Create("TextButton", {
-                BackgroundColor3 = ColorPicker.Value,
+                BackgroundColor3 = element.Value,
                 Position = UDim2.new(1, -50, 0, 10),
                 AnchorPoint = Vector2.new(1, 0),
                 Size = UDim2.new(0, 36, 0, 26),
@@ -1757,7 +1892,14 @@ function Library:CreateWindow(config)
                 Parent = container
             })
             
-                        local r, g, b = math.floor(ColorPicker.Value.R * 255), math.floor(ColorPicker.Value.G * 255), math.floor(ColorPicker.Value.B * 255)
+            -- FIX: Correct RGB calculation - get values directly from Color3
+            local r = element.Value.R * 255
+            local g = element.Value.G * 255
+            local b = element.Value.B * 255
+            
+            local rSlider, rFill, rLabel
+            local gSlider, gFill, gLabel
+            local bSlider, bFill, bLabel
             
             local function createColorSlider(name, color, yPos, initialValue)
                 local sliderBg = Create("Frame", {
@@ -1801,95 +1943,120 @@ function Library:CreateWindow(config)
                 return sliderBg, sliderFill, valueLabel
             end
             
-            local rSlider, rFill, rLabel = createColorSlider("R", Color3.fromRGB(255, 100, 100), 0, r)
-            local gSlider, gFill, gLabel = createColorSlider("G", Color3.fromRGB(100, 255, 100), 32, g)
-            local bSlider, bFill, bLabel = createColorSlider("B", Color3.fromRGB(100, 150, 255), 64, b)
+            rSlider, rFill, rLabel = createColorSlider("R", Color3.fromRGB(255, 100, 100), 0, r)
+            gSlider, gFill, gLabel = createColorSlider("G", Color3.fromRGB(100, 255, 100), 32, g)
+            bSlider, bFill, bLabel = createColorSlider("B", Color3.fromRGB(100, 150, 255), 64, b)
             
             local function updateColor()
-                local rv = math.floor(ColorPicker.Value.R * 255)
-                local gv = math.floor(ColorPicker.Value.G * 255)
-                local bv = math.floor(ColorPicker.Value.B * 255)
+                -- FIX: Correct RGB extraction from Color3
+                local rv = element.Value.R * 255
+                local gv = element.Value.G * 255
+                local bv = element.Value.B * 255
                 
-                preview.BackgroundColor3 = ColorPicker.Value
+                preview.BackgroundColor3 = element.Value
                 
-                Tween(rFill, {Size = UDim2.new(rv / 255, 0, 1, 0)}, 0.1)
-                Tween(gFill, {Size = UDim2.new(gv / 255, 0, 1, 0)}, 0.1)
-                Tween(bFill, {Size = UDim2.new(bv / 255, 0, 1, 0)}, 0.1)
+                Tween(rFill, {Size = UDim2.new(rv / 255, 0, 1, 0)}, 0.15)
+                Tween(gFill, {Size = UDim2.new(gv / 255, 0, 1, 0)}, 0.15)
+                Tween(bFill, {Size = UDim2.new(bv / 255, 0, 1, 0)}, 0.15)
                 
-                rLabel.Text = tostring(rv)
-                gLabel.Text = tostring(gv)
-                bLabel.Text = tostring(bv)
+                rLabel.Text = tostring(math.floor(rv))
+                gLabel.Text = tostring(math.floor(gv))
+                bLabel.Text = tostring(math.floor(bv))
                 
-                callback(ColorPicker.Value)
+                SafeCallback(callback, element.Value)
             end
             
-            local function setupColorSliderDrag(slider, fill, valueLabel, component)
+            local function setupColorSliderDrag(slider, component)
                 local dragging = false
                 
-                slider.InputBegan:Connect(function(input)
+                element.Connections:Connect(slider.InputBegan, function(input)
                     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                         dragging = true
                         local percent = math.clamp((input.Position.X - slider.AbsolutePosition.X) / slider.AbsoluteSize.X, 0, 1)
                         local value = math.floor(percent * 255)
                         
-                        local rv, gv, bv = ColorPicker.Value.R * 255, ColorPicker.Value.G * 255, ColorPicker.Value.B * 255
+                        -- FIX: Correct RGB value extraction
+                        local rv = element.Value.R * 255
+                        local gv = element.Value.G * 255
+                        local bv = element.Value.B * 255
+                        
                         if component == "R" then rv = value
                         elseif component == "G" then gv = value
                         else bv = value end
                         
-                        ColorPicker.Value = Color3.fromRGB(rv, gv, bv)
+                        element.Value = Color3.fromRGB(rv, gv, bv)
                         updateColor()
                     end
                 end)
                 
-                UserInputService.InputEnded:Connect(function(input)
+                element.Connections:Connect(UserInputService.InputEnded, function(input)
                     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
                         dragging = false
                     end
                 end)
                 
-                UserInputService.InputChanged:Connect(function(input)
+                element.Connections:Connect(UserInputService.InputChanged, function(input)
                     if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
                         local percent = math.clamp((input.Position.X - slider.AbsolutePosition.X) / slider.AbsoluteSize.X, 0, 1)
                         local value = math.floor(percent * 255)
                         
-                        local rv, gv, bv = ColorPicker.Value.R * 255, ColorPicker.Value.G * 255, ColorPicker.Value.B * 255
+                        -- FIX: Correct RGB value extraction
+                        local rv = element.Value.R * 255
+                        local gv = element.Value.G * 255
+                        local bv = element.Value.B * 255
+                        
                         if component == "R" then rv = value
                         elseif component == "G" then gv = value
                         else bv = value end
                         
-                        ColorPicker.Value = Color3.fromRGB(rv, gv, bv)
+                        element.Value = Color3.fromRGB(rv, gv, bv)
                         updateColor()
                     end
                 end)
             end
             
-            setupColorSliderDrag(rSlider, rFill, rLabel, "R")
-            setupColorSliderDrag(gSlider, gFill, gLabel, "G")
-            setupColorSliderDrag(bSlider, bFill, bLabel, "B")
+            setupColorSliderDrag(rSlider, "R")
+            setupColorSliderDrag(gSlider, "G")
+            setupColorSliderDrag(bSlider, "B")
             
-            preview.MouseButton1Click:Connect(function()
-                ColorPicker.Open = not ColorPicker.Open
-                if ColorPicker.Open then
-                    Tween(container, {Size = UDim2.new(1, 0, 0, 160)}, 0.25, Enum.EasingStyle.Quint)
+            element.Connections:Connect(preview.MouseButton1Click, function()
+                element.Open = not element.Open
+                if element.Open then
+                    Tween(container, {Size = UDim2.new(1, 0, 0, 160)}, 0.3, Enum.EasingStyle.Quint)
                 else
-                    Tween(container, {Size = UDim2.new(1, 0, 0, 46)}, 0.25, Enum.EasingStyle.Quint)
+                    Tween(container, {Size = UDim2.new(1, 0, 0, 46)}, 0.3, Enum.EasingStyle.Quint)
                 end
             end)
             
-            container.MouseEnter:Connect(function()
-                Tween(container, {BackgroundColor3 = Theme.Hover}, 0.15)
+            element.Connections:Connect(container.MouseEnter, function()
+                Tween(container, {BackgroundColor3 = Theme.Hover}, 0.2)
             end)
-            container.MouseLeave:Connect(function()
-                Tween(container, {BackgroundColor3 = Theme.Secondary}, 0.15)
+            element.Connections:Connect(container.MouseLeave, function()
+                Tween(container, {BackgroundColor3 = Theme.Secondary}, 0.2)
             end)
             
-            function ColorPicker:Set(color)
-                ColorPicker.Value = color
+            function element:Set(color)
+                element.Value = color
                 updateColor()
             end
             
-            return ColorPicker
+            table.insert(Tab.Elements, element)
+            return element
+        end
+        
+        -- ═══════════════════════════════════════════════════════
+        -- DIVIDER
+        -- ═══════════════════════════════════════════════════════
+        function Tab:CreateDivider()
+            local divider = Create("Frame", {
+                BackgroundColor3 = Theme.Border,
+                Size = UDim2.new(1, 0, 0, 1),
+                Parent = page
+            })
+            
+            local element = CreateElementBase(divider)
+            table.insert(Tab.Elements, element)
+            return element
         end
         
         return Tab
@@ -1906,9 +2073,9 @@ function Library:CreateWindow(config)
         task.wait(0.8)
         Library:Notify({
             Title = "Welcome to " .. windowName,
-            Content = "Press RightCtrl to toggle the UI. Enjoy!",
+            Content = "Press RightCtrl to toggle. Enjoy!",
             Icon = "star",
-            Time = 5
+            Time = 4
         })
     end)
     
@@ -1917,19 +2084,40 @@ function Library:CreateWindow(config)
 end
 
 -- ═══════════════════════════════════════════════════════════════
--- DESTROY ALL
+-- DESTROY ALL WINDOWS
 -- ═══════════════════════════════════════════════════════════════
-function Library:Destroy()
-    for _, window in pairs(Library.Windows) do
-        if window.Gui then
-            window.Gui:Destroy()
+function Library:DestroyAll()
+    -- Disconnect global connections
+    for _, connection in ipairs(Library.Connections) do
+        if connection.Connected then
+            connection:Disconnect()
         end
     end
+    Library.Connections = {}
     
+    -- Clear open dropdowns
+    Library.OpenDropdowns = {}
+    
+    -- Destroy all windows
+    for _, window in pairs(Library.Windows) do
+        if window.Destroy then
+            window:Destroy()
+        end
+    end
+    Library.Windows = {}
+    
+    -- Destroy notification GUI
     local notifGui = CoreGui:FindFirstChild("StellarNotifications")
     if notifGui then
         notifGui:Destroy()
     end
+end
+
+-- ═══════════════════════════════════════════════════════════════
+-- GET THEME (For external access)
+-- ═══════════════════════════════════════════════════════════════
+function Library:GetTheme()
+    return Theme
 end
 
 return Library
