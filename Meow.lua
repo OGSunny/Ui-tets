@@ -178,7 +178,7 @@ local function MakeDraggable(dragObject, targetObject)
     end)
 end
 
-local function Ripple(button)
+local function -- Ripple(Button)
     local ripple = Create("Frame", {
         BackgroundColor3 = Theme.Transparent,
         BackgroundTransparency = 0.85,
@@ -1241,7 +1241,7 @@ function Stellar:CreateWindow(config)
                 Tween(Arrow, {Position = UDim2.new(1, -30, 0.5, 0)}, 0.15)
             end)
             Button.MouseButton1Click:Connect(function()
-                Ripple(Button)
+                -- Ripple(Button)
                 pcall(Callback)
             end)
             
