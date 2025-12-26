@@ -1,5 +1,5 @@
 --[[
-    Stellar Hub UI Library
+    Stellar Hub UI Library (V2 - Enhanced)
     Inspired by the professional design of Zvios Hub.
     Theme: Light Blue Accent (RGB 40, 190, 207)
     Author: [Your Name]
@@ -9,11 +9,12 @@ local StellarHub = {}
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local CoreGui = game:GetService("CoreGui")
+local LocalPlayer = game.Players.LocalPlayer
 
 -- Constants & Theme
 local THEME = {
-    Accent = Color3.fromRGB(40, 190, 207), -- Your requested Light Blue
-    Background = Color3.fromRGB(20, 20, 20), -- Darker Background
+    Accent = Color3.fromRGB(40, 190, 207), -- Light Blue
+    Background = Color3.fromRGB(20, 20, 20), -- Main Window Background
     Sidebar = Color3.fromRGB(30, 30, 30),
     Content = Color3.fromRGB(25, 25, 25),
     ElementBg = Color3.fromRGB(35, 35, 35),
@@ -29,7 +30,7 @@ local function AddCorner(instance, radius)
     return corner
 end
 
--- Utility: Add Padding
+-- Utility: Add Padding (UIPadding)
 local function AddPadding(instance, padding)
     local pad = Instance.new("UIPadding")
     pad.PaddingTop = UDim.new(0, padding or 10)
@@ -44,7 +45,8 @@ end
 function StellarHub:CreateWindow()
     local Library = {}
     local currentTab = nil
-    
+    local uiHidden = true
+
     -- 1. Main ScreenGui
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "StellarHub_UI"
@@ -54,10 +56,36 @@ function StellarHub:CreateWindow()
     local MainFrame = Instance.new("Frame")
     MainFrame.Name = "MainFrame"
     MainFrame.BackgroundColor3 = THEME.Background
-    MainFrame.Position = UDim2.new(0.5, -350, 0.5, -225) -- Centered
-    MainFrame.Size = UDim2.new(0, 700, 0, 450) -- Wider like the example
+    MainFrame.Position = UDim2.new(0.5, -350, 0.5, -225)
+    MainFrame.Size = UDim2.new(0, 700, 0, 450)
     MainFrame.Parent = ScreenGui
     AddCorner(MainFrame, 10)
+    
+    -- Hide UI by default (smooth entry)
+    MainFrame.Visible = false
+    
+    -- Function to toggle UI visibility
+    local function ToggleUI(visible)
+        local targetPosition = visible and UDim2.new(0.5, -350, 0.5, -225) or UDim2.new(0.5, -350, 2, 0)
+        local targetTransparency = visible and 0 or 1
+        local easing = visible and Enum.EasingStyle.Quart or Enum.EasingStyle.Quart
+
+        if visible then
+            MainFrame.Visible = true
+        end
+
+        TweenService:Create(MainFrame, TweenInfo.new(0.5, easing), {
+            Position = targetPosition,
+            BackgroundTransparency = targetTransparency
+        }):Play()
+
+        if not visible then
+            -- Wait for animation to finish before hiding
+            task.wait(0.5)
+            MainFrame.Visible = false
+        end
+        uiHidden = not visible
+    end
 
     -- 3. Sidebar (Left Panel)
     local Sidebar = Instance.new("Frame")
@@ -66,7 +94,7 @@ function StellarHub:CreateWindow()
     Sidebar.Size = UDim2.new(0, 200, 1, 0)
     Sidebar.Parent = MainFrame
     AddCorner(Sidebar, 10)
-    -- Fix corners on the right side of the sidebar to be flat
+    -- Fix corners on the right side of the sidebar
     local SidebarFix = Instance.new("Frame")
     SidebarFix.BackgroundColor3 = THEME.Sidebar
     SidebarFix.BorderSizePixel = 0
@@ -74,18 +102,77 @@ function StellarHub:CreateWindow()
     SidebarFix.Size = UDim2.new(0, 5, 1, 0)
     SidebarFix.Parent = Sidebar
 
-    -- Header Title (Top Left)
-    local HeaderTitle = Instance.new("TextLabel")
-    HeaderTitle.Text = "Stellar Hub"
-    HeaderTitle.Font = Enum.Font.GothamBold
-    HeaderTitle.TextColor3 = THEME.Accent
-    HeaderTitle.TextSize = 22
-    HeaderTitle.BackgroundTransparency = 1
-    HeaderTitle.Size = UDim2.new(1, -20, 0, 50)
-    HeaderTitle.Position = UDim2.new(0, 20, 0, 10)
-    HeaderTitle.TextXAlignment = Enum.TextXAlignment.Left
-    HeaderTitle.Parent = Sidebar
+    -- Header (Top Bar for Logo & User Info)
+    local HeaderFrame = Instance.new("Frame")
+    HeaderFrame.Name = "Header"
+    HeaderFrame.BackgroundColor3 = THEME.Background
+    HeaderFrame.Size = UDim2.new(1, 0, 0, 55)
+    HeaderFrame.Position = UDim2.new(0, 0, 0, 0)
+    HeaderFrame.Parent = MainFrame
+
+    -- Stellar Hub Title (On the sidebar)
+    local TitleLabel = Instance.new("TextLabel")
+    TitleLabel.Text = "Stellar Hub"
+    TitleLabel.Font = Enum.Font.GothamBold
+    TitleLabel.TextColor3 = THEME.Accent
+    TitleLabel.TextSize = 22
+    TitleLabel.BackgroundTransparency = 1
+    TitleLabel.Size = UDim2.new(1, -20, 1, 0)
+    TitleLabel.Position = UDim2.new(0, 20, 0, 0)
+    TitleLabel.TextXAlignment = Enum.TextXAlignment.Left
+    TitleLabel.Parent = Sidebar
+
+    -- Content Title (e.g., "Main")
+    local ContentTitle = Instance.new("TextLabel")
+    ContentTitle.Name = "ContentTitle"
+    ContentTitle.Text = "Main"
+    ContentTitle.Font = Enum.Font.GothamBold
+    ContentTitle.TextColor3 = THEME.TextPrimary
+    ContentTitle.TextSize = 24
+    ContentTitle.BackgroundTransparency = 1
+    ContentTitle.Size = UDim2.new(1, -40, 0, 40)
+    ContentTitle.Position = UDim2.new(0, 20, 0, 10)
+    ContentTitle.TextXAlignment = Enum.TextXAlignment.Left
+    ContentTitle.Parent = HeaderFrame
     
+    -- User Profile Frame (Top Right)
+    local UserFrame = Instance.new("Frame")
+    UserFrame.Name = "UserProfile"
+    UserFrame.BackgroundTransparency = 1
+    UserFrame.Size = UDim2.new(0, 150, 1, 0)
+    UserFrame.Position = UDim2.new(1, -170, 0, 0)
+    UserFrame.Parent = HeaderFrame
+
+    local UsernameLabel = Instance.new("TextLabel")
+    UsernameLabel.Text = LocalPlayer.Name -- Display Username
+    UsernameLabel.Font = Enum.Font.GothamBold
+    UsernameLabel.TextColor3 = THEME.TextPrimary
+    UsernameLabel.TextSize = 14
+    UsernameLabel.BackgroundTransparency = 1
+    UsernameLabel.Position = UDim2.new(0, 0, 0.5, -10)
+    UsernameLabel.Size = UDim2.new(1, -50, 0, 20)
+    UsernameLabel.TextXAlignment = Enum.TextXAlignment.Right
+    UsernameLabel.Parent = UserFrame
+    
+    local StatusLabel = Instance.new("TextLabel")
+    StatusLabel.Text = "Online" -- Status
+    StatusLabel.Font = Enum.Font.Gotham
+    StatusLabel.TextColor3 = THEME.Accent
+    StatusLabel.TextSize = 12
+    StatusLabel.BackgroundTransparency = 1
+    StatusLabel.Position = UDim2.new(0, 0, 0.5, 10)
+    StatusLabel.Size = UDim2.new(1, -50, 0, 20)
+    StatusLabel.TextXAlignment = Enum.TextXAlignment.Right
+    StatusLabel.Parent = UserFrame
+    
+    local AvatarImage = Instance.new("ImageLabel")
+    AvatarImage.Size = UDim2.new(0, 40, 0, 40)
+    AvatarImage.Position = UDim2.new(1, -45, 0.5, -20)
+    AvatarImage.BackgroundTransparency = 1
+    AvatarImage.Image = LocalPlayer:GetUserAvatarThumbnailAsync(LocalPlayer.UserId, "HeadShot", "48x48").Image -- Get Avatar Image
+    AvatarImage.Parent = UserFrame
+    AddCorner(AvatarImage, 20) -- Perfect Circle
+
     -- Tab Container (In Sidebar)
     local TabContainer = Instance.new("ScrollingFrame")
     TabContainer.Name = "TabContainer"
@@ -100,34 +187,20 @@ function StellarHub:CreateWindow()
     TabListLayout.SortOrder = Enum.SortOrder.LayoutOrder
     TabListLayout.Parent = TabContainer
 
-    -- 4. Content Area (Right Panel)
+    -- Content Area (Right Panel)
     local ContentArea = Instance.new("Frame")
     ContentArea.Name = "ContentArea"
-    ContentArea.BackgroundColor3 = THEME.Content
-    ContentArea.BackgroundTransparency = 1 -- Transparent to show main background
+    ContentArea.BackgroundTransparency = 1
     ContentArea.Position = UDim2.new(0, 200, 0, 0)
     ContentArea.Size = UDim2.new(1, -200, 1, 0)
     ContentArea.Parent = MainFrame
-    
-    -- Content Title (e.g., "Main")
-    local ContentTitle = Instance.new("TextLabel")
-    ContentTitle.Name = "ContentTitle"
-    ContentTitle.Text = "Main"
-    ContentTitle.Font = Enum.Font.GothamBold
-    ContentTitle.TextColor3 = THEME.TextPrimary
-    ContentTitle.TextSize = 24
-    ContentTitle.BackgroundTransparency = 1
-    ContentTitle.Size = UDim2.new(1, -40, 0, 40)
-    ContentTitle.Position = UDim2.new(0, 20, 0, 15)
-    ContentTitle.TextXAlignment = Enum.TextXAlignment.Left
-    ContentTitle.Parent = ContentArea
 
     -- Pages Container
     local Pages = Instance.new("Frame")
     Pages.Name = "Pages"
     Pages.BackgroundTransparency = 1
-    Pages.Position = UDim2.new(0, 0, 0, 60)
-    Pages.Size = UDim2.new(1, 0, 1, -60)
+    Pages.Position = UDim2.new(0, 0, 0, 55) -- Adjusted for header
+    Pages.Size = UDim2.new(1, 0, 1, -55)
     Pages.Parent = ContentArea
 
     -- Function to create a Tab
@@ -137,19 +210,27 @@ function StellarHub:CreateWindow()
         -- Tab Button in Sidebar
         local TabBtn = Instance.new("TextButton")
         TabBtn.Name = tabName .. "Tab"
-        TabBtn.BackgroundColor3 = THEME.Sidebar -- Default state
+        TabBtn.BackgroundColor3 = THEME.ElementBg
         TabBtn.BackgroundTransparency = 1
         TabBtn.Size = UDim2.new(1, 0, 0, 40)
         TabBtn.Text = ""
         TabBtn.AutoButtonColor = false
         TabBtn.Parent = TabContainer
-        AddCorner(TabBtn, 8)
         
+        -- Accent Indicator Bar
+        local AccentBar = Instance.new("Frame")
+        AccentBar.Name = "Accent"
+        AccentBar.BackgroundColor3 = THEME.Accent
+        AccentBar.Size = UDim2.new(0, 4, 1, 0)
+        AccentBar.Position = UDim2.new(0, 0, 0, 0)
+        AccentBar.Visible = false
+        AccentBar.Parent = TabBtn
+
         local TabIcon = Instance.new("ImageLabel")
         TabIcon.BackgroundTransparency = 1
         TabIcon.Position = UDim2.new(0, 10, 0.5, -10)
         TabIcon.Size = UDim2.new(0, 20, 0, 20)
-        TabIcon.Image = iconId or "rbxassetid://7733960981" -- Default icon
+        TabIcon.Image = iconId or "rbxassetid://7733960981"
         TabIcon.ImageColor3 = THEME.TextSecondary
         TabIcon.Parent = TabBtn
 
@@ -170,7 +251,7 @@ function StellarHub:CreateWindow()
         Page.BackgroundTransparency = 1
         Page.Size = UDim2.new(1, 0, 1, 0)
         Page.ScrollBarThickness = 4
-        Page.Visible = false -- Hidden by default
+        Page.Visible = false
         Page.Parent = Pages
         AddPadding(Page, 20)
         
@@ -183,31 +264,33 @@ function StellarHub:CreateWindow()
         TabBtn.MouseButton1Click:Connect(function()
             -- Deactivate old tab
             if currentTab then
-                TweenService:Create(currentTab.Btn, TweenInfo.new(0.3), {BackgroundTransparency = 1}):Play()
-                TweenService:Create(currentTab.Icon, TweenInfo.new(0.3), {ImageColor3 = THEME.TextSecondary}):Play()
-                TweenService:Create(currentTab.Label, TweenInfo.new(0.3), {TextColor3 = THEME.TextSecondary}):Play()
                 currentTab.Page.Visible = false
+                currentTab.AccentBar.Visible = false
+                TweenService:Create(currentTab.Icon, TweenInfo.new(0.2), {ImageColor3 = THEME.TextSecondary}):Play()
+                TweenService:Create(currentTab.Label, TweenInfo.new(0.2), {TextColor3 = THEME.TextSecondary}):Play()
+                TweenService:Create(currentTab.Btn, TweenInfo.new(0.2), {BackgroundColor3 = THEME.Sidebar, BackgroundTransparency = 1}):Play()
             end
             
             -- Activate new tab
-            TweenService:Create(TabBtn, TweenInfo.new(0.3), {BackgroundColor3 = THEME.Accent, BackgroundTransparency = 0.1}):Play()
-            TweenService:Create(TabIcon, TweenInfo.new(0.3), {ImageColor3 = THEME.TextPrimary}):Play()
-            TweenService:Create(TabLabel, TweenInfo.new(0.3), {TextColor3 = THEME.TextPrimary}):Play()
+            AccentBar.Visible = true
+            TweenService:Create(TabIcon, TweenInfo.new(0.2), {ImageColor3 = THEME.TextPrimary}):Play()
+            TweenService:Create(TabLabel, TweenInfo.new(0.2), {TextColor3 = THEME.TextPrimary}):Play()
+            TweenService:Create(TabBtn, TweenInfo.new(0.2), {BackgroundColor3 = THEME.ElementBg, BackgroundTransparency = 0}):Play()
             Page.Visible = true
             ContentTitle.Text = tabName
             
-            currentTab = {Btn = TabBtn, Icon = TabIcon, Label = TabLabel, Page = Page}
+            currentTab = {Btn = TabBtn, Icon = TabIcon, Label = TabLabel, Page = Page, AccentBar = AccentBar}
         end)
         
         -- Activate first tab by default
         if currentTab == nil then
-            TabBtn.BackgroundColor3 = THEME.Accent
-            TabBtn.BackgroundTransparency = 0.1
+            AccentBar.Visible = true
             TabIcon.ImageColor3 = THEME.TextPrimary
             TabLabel.TextColor3 = THEME.TextPrimary
+            TabBtn.BackgroundColor3 = THEME.ElementBg
             Page.Visible = true
             ContentTitle.Text = tabName
-            currentTab = {Btn = TabBtn, Icon = TabIcon, Label = TabLabel, Page = Page}
+            currentTab = {Btn = TabBtn, Icon = TabIcon, Label = TabLabel, Page = Page, AccentBar = AccentBar}
         end
 
         -- Create Section Header (e.g., "Combat")
@@ -296,7 +379,7 @@ function StellarHub:CreateWindow()
             local SliderFrame = Instance.new("Frame")
             SliderFrame.Name = title .. "Slider"
             SliderFrame.BackgroundColor3 = THEME.ElementBg
-            SliderFrame.Size = UDim2.new(1, 0, 0, 70) -- Taller for description
+            SliderFrame.Size = UDim2.new(1, 0, 0, 70)
             SliderFrame.Parent = Page
             AddCorner(SliderFrame, 8)
 
@@ -318,7 +401,7 @@ function StellarHub:CreateWindow()
             DescLabel.TextSize = 12
             DescLabel.BackgroundTransparency = 1
             DescLabel.Position = UDim2.new(0, 15, 0, 30)
-            DescLabel.Size = UDim2.new(0.6, 0, 0, 30) -- Width for description
+            DescLabel.Size = UDim2.new(0.6, 0, 0, 30)
             DescLabel.TextXAlignment = Enum.TextXAlignment.Left
             DescLabel.TextWrapped = true
             DescLabel.TextYAlignment = Enum.TextYAlignment.Top
@@ -340,7 +423,7 @@ function StellarHub:CreateWindow()
             SlideBarBg.Text = ""
             SlideBarBg.AutoButtonColor = false
             SlideBarBg.BackgroundColor3 = Color3.fromRGB(60, 60, 60)
-            SlideBarBg.Position = UDim2.new(0.65, 0, 0.5, 5) -- Positioned to the right
+            SlideBarBg.Position = UDim2.new(0.65, 0, 0.5, 5)
             SlideBarBg.Size = UDim2.new(0.3, 0, 0, 6)
             SlideBarBg.Parent = SliderFrame
             AddCorner(SlideBarBg, 3)
@@ -354,7 +437,7 @@ function StellarHub:CreateWindow()
             local Knob = Instance.new("Frame")
             Knob.BackgroundColor3 = THEME.Accent
             Knob.Size = UDim2.new(0, 12, 0, 12)
-            Knob.Position = UDim2.new(1, -6, 0.5, -6) -- Centered on end of fill
+            Knob.Position = UDim2.new(1, -6, 0.5, -6)
             Knob.Parent = Fill
             AddCorner(Knob, 6)
 
@@ -391,12 +474,12 @@ function StellarHub:CreateWindow()
         return Tab
     end
     
-    -- Notification Function
+    -- Notification Function (EasingStyle fixed)
     function Library:Notify(title, text, duration)
         local NotifyFrame = Instance.new("Frame")
         NotifyFrame.Name = "Notification"
         NotifyFrame.BackgroundColor3 = THEME.Background
-        NotifyFrame.Position = UDim2.new(1, 20, 1, -70) -- Start off-screen
+        NotifyFrame.Position = UDim2.new(1, 20, 1, -70)
         NotifyFrame.Size = UDim2.new(0, 250, 0, 60)
         NotifyFrame.Parent = ScreenGui
         AddCorner(NotifyFrame, 8)
@@ -431,13 +514,23 @@ function StellarHub:CreateWindow()
         TextLabel.TextYAlignment = Enum.TextYAlignment.Top
         TextLabel.Parent = NotifyFrame
 
-        -- Animation
-        TweenService:Create(NotifyFrame, TweenInfo.new(0.5, Enum.EasingStyle.isBack), {Position = UDim2.new(1, -270, 1, -70)}):Play()
+        -- Animation (Fixed EasingStyle to Quad)
+        TweenService:Create(NotifyFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quart), {Position = UDim2.new(1, -270, 1, -70)}):Play()
         task.wait(duration or 3)
-        TweenService:Create(NotifyFrame, TweenInfo.new(0.5, Enum.EasingStyle.isBack, Enum.EasingDirection.In), {Position = UDim2.new(1, 20, 1, -70)}):Play()
+        TweenService:Create(NotifyFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quart, Enum.EasingDirection.In), {Position = UDim2.new(1, 20, 1, -70)}):Play()
         task.wait(0.5)
         NotifyFrame:Destroy()
     end
+    
+    -- UI Toggle Listener (Key: LeftControl)
+    UserInputService.InputBegan:Connect(function(input, gameProcessedEvent)
+        if input.KeyCode == Enum.KeyCode.LeftControl and not gameProcessedEvent then
+            ToggleUI(uiHidden)
+        end
+    end)
+    
+    -- Initial Fade-in/Display (Optional, you can remove this if you only want the keybind)
+    ToggleUI(true)
 
     return Library
 end
