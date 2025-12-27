@@ -7,9 +7,12 @@
     ╚══════╝   ╚═╝   ╚══════╝╚══════╝╚══════╝╚═╝  ╚═╝╚═╝  ╚═╝
     
     Stellar Hub v6.0 - Premium UI Library
+    Features: Key System, Config System, Modern Design
 ]]
 
 local Stellar = {}
+
+-- Services
 local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
@@ -20,220 +23,129 @@ local HttpService = game:GetService("HttpService")
 
 local Player = Players.LocalPlayer
 
--- Lucide Icons (Actual working IDs from Lucide icon pack)
+-- Lucide Icons
 local Icons = {
-    -- UI Controls
-    ["x"] = "rbxassetid://13041085562",
-    ["minus"] = "rbxassetid://13041083498",
-    ["plus"] = "rbxassetid://13041084291",
-    ["check"] = "rbxassetid://13041082364",
-    ["chevron-down"] = "rbxassetid://13041082660",
-    ["chevron-up"] = "rbxassetid://13041082824",
-    ["chevron-right"] = "rbxassetid://13041082751",
-    ["chevron-left"] = "rbxassetid://13041082589",
-    ["menu"] = "rbxassetid://13041083389",
-    ["more-horizontal"] = "rbxassetid://13041083566",
-    ["more-vertical"] = "rbxassetid://13041083654",
-    
-    -- Navigation
-    ["home"] = "rbxassetid://13041083073",
-    ["settings"] = "rbxassetid://13041084581",
-    ["search"] = "rbxassetid://13041084505",
-    ["filter"] = "rbxassetid://13041082946",
-    ["layout-grid"] = "rbxassetid://13041083253",
-    ["list"] = "rbxassetid://13041083322",
-    
-    -- Actions
-    ["play"] = "rbxassetid://13041084218",
-    ["pause"] = "rbxassetid://13041084145",
-    ["stop-circle"] = "rbxassetid://13041084808",
-    ["refresh-cw"] = "rbxassetid://13041084364",
-    ["rotate-cw"] = "rbxassetid://13041084432",
-    ["download"] = "rbxassetid://13041082870",
-    ["upload"] = "rbxassetid://13041085126",
-    ["copy"] = "rbxassetid://13041082522",
-    ["clipboard"] = "rbxassetid://13041082445",
-    ["save"] = "rbxassetid://13041084503",
-    ["trash"] = "rbxassetid://13041085050",
-    ["edit"] = "rbxassetid://13041082900",
-    ["external-link"] = "rbxassetid://13041082919",
-    
-    -- Status & Alerts
-    ["info"] = "rbxassetid://13041083141",
-    ["alert-circle"] = "rbxassetid://13041081986",
-    ["alert-triangle"] = "rbxassetid://13041082044",
-    ["check-circle"] = "rbxassetid://13041082395",
-    ["x-circle"] = "rbxassetid://13041085194",
-    ["help-circle"] = "rbxassetid://13041083013",
-    ["bell"] = "rbxassetid://13041082150",
-    ["bell-off"] = "rbxassetid://13041082106",
-    
-    -- User & People
-    ["user"] = "rbxassetid://13041085165",
-    ["users"] = "rbxassetid://13041085203",
-    ["user-plus"] = "rbxassetid://13041085088",
-    ["user-minus"] = "rbxassetid://13041085011",
-    ["user-check"] = "rbxassetid://13041084973",
-    
-    -- Communication
-    ["message-circle"] = "rbxassetid://13041083425",
-    ["message-square"] = "rbxassetid://13041083463",
-    ["mail"] = "rbxassetid://13041083354",
-    ["send"] = "rbxassetid://13041084543",
-    ["phone"] = "rbxassetid://13041084180",
-    
-    -- Media
-    ["image"] = "rbxassetid://13041083108",
-    ["video"] = "rbxassetid://13041085241",
-    ["music"] = "rbxassetid://13041083728",
-    ["volume-2"] = "rbxassetid://13041085318",
-    ["volume-x"] = "rbxassetid://13041085356",
-    ["mic"] = "rbxassetid://13041083533",
-    ["mic-off"] = "rbxassetid://13041083500",
-    
-    -- Files & Folders
-    ["file"] = "rbxassetid://13041082985",
-    ["file-text"] = "rbxassetid://13041082962",
-    ["folder"] = "rbxassetid://13041083007",
-    ["folder-open"] = "rbxassetid://13041082975",
-    ["archive"] = "rbxassetid://13041082062",
-    
-    -- Devices & Hardware
-    ["monitor"] = "rbxassetid://13041083618",
-    ["smartphone"] = "rbxassetid://13041084695",
-    ["tablet"] = "rbxassetid://13041084884",
-    ["laptop"] = "rbxassetid://13041083217",
-    ["cpu"] = "rbxassetid://13041082550",
-    ["hard-drive"] = "rbxassetid://13041082989",
-    ["wifi"] = "rbxassetid://13041085394",
-    ["wifi-off"] = "rbxassetid://13041085432",
-    ["bluetooth"] = "rbxassetid://13041082187",
-    
-    -- Security
-    ["lock"] = "rbxassetid://13041083286",
-    ["unlock"] = "rbxassetid://13041085088",
-    ["key"] = "rbxassetid://13041083181",
-    ["shield"] = "rbxassetid://13041084619",
-    ["shield-check"] = "rbxassetid://13041084657",
-    ["eye"] = "rbxassetid://13041082938",
-    ["eye-off"] = "rbxassetid://13041082927",
-    
-    -- Time & Date
-    ["clock"] = "rbxassetid://13041082478",
-    ["calendar"] = "rbxassetid://13041082254",
-    ["timer"] = "rbxassetid://13041084962",
-    ["hourglass"] = "rbxassetid://13041083095",
-    
-    -- Weather & Nature
-    ["sun"] = "rbxassetid://13041084846",
-    ["moon"] = "rbxassetid://13041083580",
-    ["cloud"] = "rbxassetid://13041082500",
-    ["zap"] = "rbxassetid://13041085470",
-    ["droplet"] = "rbxassetid://13041082885",
-    
-    -- Arrows & Direction
-    ["arrow-up"] = "rbxassetid://13041082150",
-    ["arrow-down"] = "rbxassetid://13041082088",
-    ["arrow-left"] = "rbxassetid://13041082106",
-    ["arrow-right"] = "rbxassetid://13041082123",
-    ["corner-up-right"] = "rbxassetid://13041082534",
-    ["move"] = "rbxassetid://13041083690",
-    
-    -- Gaming & Combat
-    ["target"] = "rbxassetid://13041084922",
-    ["crosshair"] = "rbxassetid://13041082566",
-    ["sword"] = "rbxassetid://13041084865",
-    ["gamepad"] = "rbxassetid://13041083030",
-    ["trophy"] = "rbxassetid://13041085012",
-    
-    -- Social
-    ["heart"] = "rbxassetid://13041083051",
-    ["star"] = "rbxassetid://13041084770",
-    ["thumbs-up"] = "rbxassetid://13041084940",
-    ["thumbs-down"] = "rbxassetid://13041084900",
-    ["share"] = "rbxassetid://13041084600",
-    ["bookmark"] = "rbxassetid://13041082210",
-    
-    -- Development
-    ["code"] = "rbxassetid://13041082489",
-    ["terminal"] = "rbxassetid://13041084960",
-    ["git-branch"] = "rbxassetid://13041083042",
-    ["github"] = "rbxassetid://13041083055",
-    ["database"] = "rbxassetid://13041082600",
-    
-    -- Misc
-    ["link"] = "rbxassetid://13041083265",
-    ["unlink"] = "rbxassetid://13041085069",
-    ["globe"] = "rbxassetid://13041083062",
-    ["map"] = "rbxassetid://13041083370",
-    ["map-pin"] = "rbxassetid://13041083340",
-    ["compass"] = "rbxassetid://13041082511",
-    ["flag"] = "rbxassetid://13041082995",
-    ["gift"] = "rbxassetid://13041083048",
-    ["award"] = "rbxassetid://13041082079",
-    ["crown"] = "rbxassetid://13041082580",
-    ["sparkles"] = "rbxassetid://13041084732",
-    ["wand"] = "rbxassetid://13041085375",
-    ["palette"] = "rbxassetid://13041084107",
-    ["layers"] = "rbxassetid://13041083235",
-    ["box"] = "rbxassetid://13041082225",
-    ["package"] = "rbxassetid://13041084069",
-    ["power"] = "rbxassetid://13041084253",
-    ["activity"] = "rbxassetid://13041081948",
-    ["trending-up"] = "rbxassetid://13041084998",
-    ["trending-down"] = "rbxassetid://13041084980",
-    ["bar-chart"] = "rbxassetid://13041082095",
-    ["pie-chart"] = "rbxassetid://13041084195",
-    ["dollar-sign"] = "rbxassetid://13041082855",
-    ["percent"] = "rbxassetid://13041084160",
-    ["hash"] = "rbxassetid://13041083000",
-    ["at-sign"] = "rbxassetid://13041082070",
-    ["sliders"] = "rbxassetid://13041084713",
-    ["toggle-left"] = "rbxassetid://13041084975",
-    ["toggle-right"] = "rbxassetid://13041084988"
+    ["x"] = "rbxassetid://10747384394",
+    ["check"] = "rbxassetid://10709790644",
+    ["check-circle"] = "rbxassetid://10709790387",
+    ["x-circle"] = "rbxassetid://10747383819",
+    ["key"] = "rbxassetid://10723416652",
+    ["lock"] = "rbxassetid://10734934711",
+    ["unlock"] = "rbxassetid://10747366027",
+    ["shield"] = "rbxassetid://10734951847",
+    ["shield-check"] = "rbxassetid://10734951367",
+    ["link"] = "rbxassetid://10723426722",
+    ["external-link"] = "rbxassetid://10723346684",
+    ["copy"] = "rbxassetid://10709812159",
+    ["clipboard"] = "rbxassetid://10709799288",
+    ["message-circle"] = "rbxassetid://10734888000",
+    ["refresh-cw"] = "rbxassetid://10734933222",
+    ["clock"] = "rbxassetid://10709805144",
+    ["calendar"] = "rbxassetid://10709789505",
+    ["star"] = "rbxassetid://10734966248",
+    ["crown"] = "rbxassetid://10709818626",
+    ["sparkles"] = "rbxassetid://10734905958",
+    ["zap"] = "rbxassetid://10747384552",
+    ["heart"] = "rbxassetid://10723406885",
+    ["gift"] = "rbxassetid://10723396402",
+    ["info"] = "rbxassetid://10723415903",
+    ["alert-circle"] = "rbxassetid://10709752996",
+    ["alert-triangle"] = "rbxassetid://10709753149",
+    ["loader"] = "rbxassetid://10723434070",
+    ["discord"] = "rbxassetid://10734962339",
+    ["globe"] = "rbxassetid://10723404337",
+    ["user"] = "rbxassetid://10747373176",
+    ["users"] = "rbxassetid://10747373354",
+    ["gamepad-2"] = "rbxassetid://10723395215",
+    ["settings"] = "rbxassetid://10734950309",
+    ["search"] = "rbxassetid://10734943674",
+    ["home"] = "rbxassetid://10723407389",
+    ["eye"] = "rbxassetid://10723346959",
+    ["eye-off"] = "rbxassetid://10723346871",
+    ["trash"] = "rbxassetid://10747362393",
+    ["edit"] = "rbxassetid://10734883598",
+    ["download"] = "rbxassetid://10723344270",
+    ["upload"] = "rbxassetid://10747366434",
+    ["save"] = "rbxassetid://10734941499",
+    ["folder"] = "rbxassetid://10723387563",
+    ["file"] = "rbxassetid://10723374641",
+    ["image"] = "rbxassetid://10723415040",
+    ["video"] = "rbxassetid://10747374938",
+    ["music"] = "rbxassetid://10734905958",
+    ["volume"] = "rbxassetid://10747376008",
+    ["volume-x"] = "rbxassetid://10747375880",
+    ["bell"] = "rbxassetid://10709775704",
+    ["trophy"] = "rbxassetid://10747363809",
+    ["target"] = "rbxassetid://10734977012",
+    ["crosshair"] = "rbxassetid://10709818284",
+    ["sword"] = "rbxassetid://10734975498",
+    ["flag"] = "rbxassetid://10723375890",
+    ["map-pin"] = "rbxassetid://10734886004",
+    ["compass"] = "rbxassetid://10709811445",
+    ["wifi"] = "rbxassetid://10747382498",
+    ["monitor"] = "rbxassetid://10734893498",
+    ["cpu"] = "rbxassetid://10709817834",
+    ["activity"] = "rbxassetid://10709751498",
+    ["trending-up"] = "rbxassetid://10747361674",
+    ["minus"] = "rbxassetid://10734889834",
+    ["plus"] = "rbxassetid://10734927498",
+    ["chevron-down"] = "rbxassetid://10709796953",
+    ["chevron-up"] = "rbxassetid://10709797298",
+    ["chevron-right"] = "rbxassetid://10709797113",
+    ["chevron-left"] = "rbxassetid://10709796779",
+    ["arrow-right"] = "rbxassetid://10709764914",
+    ["arrow-left"] = "rbxassetid://10709764617",
+    ["sliders"] = "rbxassetid://10734962064",
+    ["toggle-left"] = "rbxassetid://10747359893",
+    ["toggle-right"] = "rbxassetid://10747360221",
+    ["power"] = "rbxassetid://10734929183",
+    ["log-out"] = "rbxassetid://10734880284",
+    ["terminal"] = "rbxassetid://10734979834",
+    ["code"] = "rbxassetid://10709802684",
+    ["hash"] = "rbxassetid://10723402570",
+    ["at-sign"] = "rbxassetid://10709770498",
+    ["command"] = "rbxassetid://10709810284"
 }
 
 -- Theme
 local Theme = {
-    Background = Color3.fromRGB(10, 10, 15),
-    BackgroundSecondary = Color3.fromRGB(16, 16, 24),
-    BackgroundTertiary = Color3.fromRGB(22, 22, 32),
+    Background = Color3.fromRGB(8, 8, 12),
+    BackgroundSecondary = Color3.fromRGB(14, 14, 22),
+    BackgroundTertiary = Color3.fromRGB(20, 20, 32),
     
-    Surface = Color3.fromRGB(28, 28, 40),
-    SurfaceHover = Color3.fromRGB(36, 36, 50),
-    SurfaceActive = Color3.fromRGB(44, 44, 60),
+    Surface = Color3.fromRGB(26, 26, 42),
+    SurfaceHover = Color3.fromRGB(34, 34, 54),
+    SurfaceActive = Color3.fromRGB(42, 42, 66),
     
-    Border = Color3.fromRGB(45, 45, 60),
-    BorderLight = Color3.fromRGB(55, 55, 75),
+    Border = Color3.fromRGB(42, 42, 66),
+    BorderLight = Color3.fromRGB(56, 56, 86),
     
-    Primary = Color3.fromRGB(88, 166, 255),
-    PrimaryDark = Color3.fromRGB(60, 140, 230),
-    PrimaryLight = Color3.fromRGB(120, 190, 255),
+    Primary = Color3.fromRGB(98, 174, 255),
+    PrimaryDark = Color3.fromRGB(70, 146, 230),
+    PrimaryLight = Color3.fromRGB(130, 195, 255),
     
-    Accent = Color3.fromRGB(168, 132, 255),
-    AccentDark = Color3.fromRGB(140, 100, 235),
+    Accent = Color3.fromRGB(162, 128, 255),
+    AccentDark = Color3.fromRGB(134, 100, 230),
+    AccentLight = Color3.fromRGB(185, 160, 255),
     
     Text = Color3.fromRGB(255, 255, 255),
-    TextSecondary = Color3.fromRGB(180, 180, 195),
-    TextMuted = Color3.fromRGB(120, 120, 140),
-    TextDisabled = Color3.fromRGB(80, 80, 100),
+    TextSecondary = Color3.fromRGB(180, 180, 200),
+    TextMuted = Color3.fromRGB(110, 110, 140),
+    TextDisabled = Color3.fromRGB(70, 70, 95),
     
     Success = Color3.fromRGB(72, 210, 145),
     Warning = Color3.fromRGB(255, 185, 65),
     Error = Color3.fromRGB(255, 95, 105),
-    Info = Color3.fromRGB(88, 166, 255),
+    Info = Color3.fromRGB(98, 174, 255),
     
-    ToggleOff = Color3.fromRGB(55, 55, 70),
-    ToggleOn = Color3.fromRGB(88, 166, 255),
+    ToggleOff = Color3.fromRGB(50, 50, 70),
+    ToggleOn = Color3.fromRGB(98, 174, 255),
     
-    SliderTrack = Color3.fromRGB(45, 45, 60),
-    SliderFill = Color3.fromRGB(88, 166, 255),
-    
-    Gradient1 = Color3.fromRGB(88, 166, 255),
-    Gradient2 = Color3.fromRGB(168, 132, 255)
+    SliderTrack = Color3.fromRGB(40, 40, 60),
+    SliderFill = Color3.fromRGB(98, 174, 255)
 }
 
--- Utilities
+-- Utility Functions
 local function Create(class, props)
     local inst = Instance.new(class)
     for k, v in pairs(props) do
@@ -250,7 +162,7 @@ end
 local function Tween(obj, props, duration, style, direction)
     local tween = TweenService:Create(
         obj,
-        TweenInfo.new(duration or 0.2, style or Enum.EasingStyle.Quart, direction or Enum.EasingDirection.Out),
+        TweenInfo.new(duration or 0.25, style or Enum.EasingStyle.Quart, direction or Enum.EasingDirection.Out),
         props
     )
     tween:Play()
@@ -285,9 +197,9 @@ local function Stroke(parent, color, thickness, transparency)
 end
 
 local function CreateIcon(parent, iconName, size, position, color)
-    local iconId = Icons[iconName] or Icons["help-circle"]
+    local iconId = Icons[iconName] or Icons["info"]
     
-    local icon = Create("ImageLabel", {
+    return Create("ImageLabel", {
         Name = "Icon",
         Image = iconId,
         ImageColor3 = color or Theme.TextSecondary,
@@ -298,8 +210,6 @@ local function CreateIcon(parent, iconName, size, position, color)
         ScaleType = Enum.ScaleType.Fit,
         Parent = parent
     })
-    
-    return icon
 end
 
 local function CreateShadow(parent, transparency, size)
@@ -369,20 +279,21 @@ local function RippleEffect(button, x, y)
     local ripple = Create("Frame", {
         Name = "Ripple",
         BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-        BackgroundTransparency = 0.8,
+        BackgroundTransparency = 0.75,
         Position = UDim2.new(0, x - button.AbsolutePosition.X, 0, y - button.AbsolutePosition.Y),
         Size = UDim2.new(0, 0, 0, 0),
         AnchorPoint = Vector2.new(0.5, 0.5),
+        ZIndex = 10,
         Parent = button
     })
     Corner(ripple, 999)
     
-    local maxSize = math.max(button.AbsoluteSize.X, button.AbsoluteSize.Y) * 2
+    local maxSize = math.max(button.AbsoluteSize.X, button.AbsoluteSize.Y) * 2.5
     
     Tween(ripple, {
         Size = UDim2.new(0, maxSize, 0, maxSize),
         BackgroundTransparency = 1
-    }, 0.5)
+    }, 0.5, Enum.EasingStyle.Quart)
     
     task.delay(0.5, function()
         ripple:Destroy()
@@ -396,9 +307,7 @@ function ConfigSystem:Init(configName)
     self.Name = configName or "StellarConfig"
     self.Data = {}
     self.AutoSave = true
-    
     self:Load()
-    
     return self
 end
 
@@ -418,27 +327,20 @@ end
 
 function ConfigSystem:Save()
     if writefile then
-        local success, err = pcall(function()
+        pcall(function()
             writefile(self.Name .. ".json", HttpService:JSONEncode(self.Data))
         end)
-        return success
     end
-    return false
 end
 
 function ConfigSystem:Load()
     if isfile and readfile then
         if isfile(self.Name .. ".json") then
-            local success, data = pcall(function()
-                return HttpService:JSONDecode(readfile(self.Name .. ".json"))
+            pcall(function()
+                self.Data = HttpService:JSONDecode(readfile(self.Name .. ".json"))
             end)
-            if success and data then
-                self.Data = data
-                return true
-            end
         end
     end
-    return false
 end
 
 function ConfigSystem:Delete()
@@ -446,13 +348,11 @@ function ConfigSystem:Delete()
         if isfile(self.Name .. ".json") then
             delfile(self.Name .. ".json")
             self.Data = {}
-            return true
         end
     end
-    return false
 end
 
--- Key Validation
+-- Key Database
 local KeyDatabase = {}
 
 local function ValidateKey(key, database)
@@ -477,7 +377,7 @@ end
 
 local function FormatTimeRemaining(seconds)
     if seconds == "lifetime" then
-        return "Lifetime", "∞"
+        return "Lifetime Access", "∞"
     end
     
     if type(seconds) ~= "number" then
@@ -489,37 +389,37 @@ local function FormatTimeRemaining(seconds)
     local minutes = math.floor((seconds % 3600) / 60)
     
     if days > 0 then
-        return string.format("%d days, %d hours", days, hours), string.format("%dd", days)
+        return string.format("%d days, %d hours remaining", days, hours), string.format("%dd %dh", days, hours)
     elseif hours > 0 then
-        return string.format("%d hours, %d mins", hours, minutes), string.format("%dh", hours)
+        return string.format("%d hours, %d minutes remaining", hours, minutes), string.format("%dh %dm", hours, minutes)
     else
-        return string.format("%d minutes", minutes), string.format("%dm", minutes)
+        return string.format("%d minutes remaining", minutes), string.format("%dm", minutes)
     end
 end
 
 -- ═══════════════════════════════════════════════════════════════════════════════
--- KEY SYSTEM UI
+-- KEY SYSTEM
 -- ═══════════════════════════════════════════════════════════════════════════════
 
 function Stellar:CreateKeySystem(config)
     config = config or {}
     
     local Title = config.Title or "Stellar Hub"
-    local Subtitle = config.Subtitle or "Premium Access Required"
+    local Subtitle = config.Subtitle or "Premium Access"
     local Logo = config.Logo or nil
     local Keys = config.Keys or {}
     local GetKeyLink = config.GetKeyLink or ""
     local Discord = config.Discord or ""
     local SaveKey = config.SaveKey ~= false
+    local KeyFileName = config.KeyFileName or "StellarKey.txt"
     local OnSuccess = config.OnSuccess or function() end
     local OnFailed = config.OnFailed or function() end
+    local Games = config.Games or {}
     
-    -- Add keys to database
     for k, v in pairs(Keys) do
         KeyDatabase[k] = v
     end
     
-    -- Cleanup
     if CoreGui:FindFirstChild("StellarKeySystem") then
         CoreGui.StellarKeySystem:Destroy()
     end
@@ -528,172 +428,260 @@ function Stellar:CreateKeySystem(config)
         Name = "StellarKeySystem",
         ResetOnSpawn = false,
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+        IgnoreGuiInset = true,
         Parent = CoreGui
     })
     
-    -- Full screen background
+    -- Background
     local Background = Create("Frame", {
         Name = "Background",
-        BackgroundColor3 = Color3.fromRGB(5, 5, 10),
+        BackgroundColor3 = Theme.Background,
         Size = UDim2.new(1, 0, 1, 0),
         Parent = ScreenGui
     })
     
-    -- Animated gradient background
-    local GradientOverlay = Create("Frame", {
-        Name = "GradientOverlay",
+    -- Animated orbs
+    local GradientMesh = Create("Frame", {
+        Name = "GradientMesh",
         BackgroundTransparency = 1,
         Size = UDim2.new(1, 0, 1, 0),
+        ClipsDescendants = true,
         Parent = Background
     })
     
-    -- Create animated orbs
-    local function CreateOrb(color, size, startPos, speed)
+    local function CreateOrb(color, size, startPosition, animationDuration)
         local orb = Create("Frame", {
+            Name = "Orb",
             BackgroundColor3 = color,
-            BackgroundTransparency = 0.85,
+            BackgroundTransparency = 0.7,
             Size = UDim2.new(0, size, 0, size),
-            Position = startPos,
+            Position = startPosition,
             AnchorPoint = Vector2.new(0.5, 0.5),
-            Parent = GradientOverlay
+            Parent = GradientMesh
         })
-        Corner(orb, size/2)
+        Corner(orb, size / 2)
         
-        -- Blur effect
         local blur = Create("Frame", {
             BackgroundColor3 = color,
-            BackgroundTransparency = 0.92,
-            Size = UDim2.new(0, size * 1.5, 0, size * 1.5),
+            BackgroundTransparency = 0.85,
+            Size = UDim2.new(0, size * 2, 0, size * 2),
             Position = UDim2.new(0.5, 0, 0.5, 0),
             AnchorPoint = Vector2.new(0.5, 0.5),
+            ZIndex = -1,
             Parent = orb
         })
-        Corner(blur, size * 0.75)
+        Corner(blur, size)
         
-        -- Animate
+        local glow = Create("Frame", {
+            BackgroundColor3 = color,
+            BackgroundTransparency = 0.92,
+            Size = UDim2.new(0, size * 3, 0, size * 3),
+            Position = UDim2.new(0.5, 0, 0.5, 0),
+            AnchorPoint = Vector2.new(0.5, 0.5),
+            ZIndex = -2,
+            Parent = orb
+        })
+        Corner(glow, size * 1.5)
+        
         task.spawn(function()
             while orb.Parent do
-                local newX = math.random(20, 80) / 100
-                local newY = math.random(20, 80) / 100
-                Tween(orb, {Position = UDim2.new(newX, 0, newY, 0)}, speed, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
-                task.wait(speed)
+                local targetX = math.random(15, 85) / 100
+                local targetY = math.random(15, 85) / 100
+                Tween(orb, {Position = UDim2.new(targetX, 0, targetY, 0)}, animationDuration, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+                task.wait(animationDuration)
+            end
+        end)
+        
+        task.spawn(function()
+            while orb.Parent do
+                Tween(orb, {BackgroundTransparency = 0.6}, 2, Enum.EasingStyle.Sine)
+                task.wait(2)
+                Tween(orb, {BackgroundTransparency = 0.8}, 2, Enum.EasingStyle.Sine)
+                task.wait(2)
             end
         end)
         
         return orb
     end
     
-    CreateOrb(Theme.Primary, 300, UDim2.new(0.2, 0, 0.3, 0), 8)
-    CreateOrb(Theme.Accent, 250, UDim2.new(0.8, 0, 0.6, 0), 10)
-    CreateOrb(Theme.Success, 200, UDim2.new(0.5, 0, 0.8, 0), 12)
+    CreateOrb(Theme.Primary, 280, UDim2.new(0.2, 0, 0.3, 0), 12)
+    CreateOrb(Theme.Accent, 220, UDim2.new(0.8, 0, 0.2, 0), 15)
+    CreateOrb(Theme.PrimaryLight, 180, UDim2.new(0.7, 0, 0.7, 0), 10)
+    CreateOrb(Theme.AccentLight, 150, UDim2.new(0.3, 0, 0.8, 0), 14)
+    CreateOrb(Theme.Primary, 120, UDim2.new(0.5, 0, 0.5, 0), 11)
     
-    -- Main card
+    -- Vignette
+    Create("ImageLabel", {
+        Name = "Vignette",
+        BackgroundTransparency = 1,
+        Image = "rbxassetid://5554236805",
+        ImageColor3 = Color3.fromRGB(0, 0, 0),
+        ImageTransparency = 0.3,
+        ScaleType = Enum.ScaleType.Slice,
+        SliceCenter = Rect.new(23, 23, 277, 277),
+        Size = UDim2.new(1, 100, 1, 100),
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        ZIndex = 2,
+        Parent = Background
+    })
+    
+    -- Main Card
     local CardContainer = Create("Frame", {
         Name = "CardContainer",
         BackgroundTransparency = 1,
-        Size = UDim2.new(0, 420, 0, 540),
+        Size = UDim2.new(0, 440, 0, 580),
         Position = UDim2.new(0.5, 0, 0.5, 0),
         AnchorPoint = Vector2.new(0.5, 0.5),
+        ZIndex = 5,
         Parent = Background
     })
     
     local Card = Create("Frame", {
         Name = "Card",
         BackgroundColor3 = Theme.BackgroundSecondary,
+        BackgroundTransparency = 0.05,
         Size = UDim2.new(1, 0, 1, 0),
         Position = UDim2.new(0.5, 0, 0.5, 0),
         AnchorPoint = Vector2.new(0.5, 0.5),
         ClipsDescendants = true,
         Parent = CardContainer
     })
-    Corner(Card, 20)
+    Corner(Card, 24)
     Stroke(Card, Theme.Border, 1, 0.5)
-    CreateShadow(Card, 0.4, 80)
+    CreateShadow(Card, 0.3, 100)
     
-    -- Animate card in
-    Card.Size = UDim2.new(0, 0, 0, 0)
-    Card.BackgroundTransparency = 1
-    
-    task.delay(0.1, function()
-        Tween(Card, {Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 0}, 0.5, Enum.EasingStyle.Back)
-    end)
-    
-    -- Header with gradient
-    local Header = Create("Frame", {
-        Name = "Header",
-        BackgroundColor3 = Theme.Primary,
-        Size = UDim2.new(1, 0, 0, 160),
+    Create("Frame", {
+        BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+        BackgroundTransparency = 0.97,
+        Size = UDim2.new(1, 0, 1, 0),
+        ZIndex = 0,
         Parent = Card
     })
     
-    local HeaderCorner = Corner(Header, 20)
+    Card.Size = UDim2.new(0, 0, 0, 0)
+    Card.BackgroundTransparency = 1
     
-    -- Fix header bottom corners
+    task.delay(0.2, function()
+        Tween(Card, {Size = UDim2.new(1, 0, 1, 0), BackgroundTransparency = 0.05}, 0.6, Enum.EasingStyle.Back)
+    end)
+    
+    -- Header
+    local Header = Create("Frame", {
+        Name = "Header",
+        BackgroundColor3 = Theme.Primary,
+        Size = UDim2.new(1, 0, 0, 180),
+        ClipsDescendants = true,
+        Parent = Card
+    })
+    Corner(Header, 24)
+    
     Create("Frame", {
         BackgroundColor3 = Theme.Primary,
-        Size = UDim2.new(1, 0, 0, 20),
-        Position = UDim2.new(0, 0, 1, -20),
+        Size = UDim2.new(1, 0, 0, 30),
+        Position = UDim2.new(0, 0, 1, -30),
         BorderSizePixel = 0,
         Parent = Header
     })
     
-    -- Header gradient
     Create("UIGradient", {
         Color = ColorSequence.new({
             ColorSequenceKeypoint.new(0, Theme.Primary),
-            ColorSequenceKeypoint.new(0.5, Color3.fromRGB(110, 150, 255)),
+            ColorSequenceKeypoint.new(0.5, Color3.fromRGB(120, 160, 255)),
             ColorSequenceKeypoint.new(1, Theme.Accent)
         }),
-        Rotation = 45,
+        Rotation = 25,
         Parent = Header
     })
     
-    -- Decorative pattern
-    for i = 1, 6 do
-        local circle = Create("Frame", {
+    for i = 1, 5 do
+        local decorCircle = Create("Frame", {
             BackgroundColor3 = Color3.fromRGB(255, 255, 255),
-            BackgroundTransparency = 0.92,
-            Size = UDim2.new(0, 80 + i * 20, 0, 80 + i * 20),
-            Position = UDim2.new(1, -40 - i * 10, 0, -30 + i * 5),
+            BackgroundTransparency = 0.88 + (i * 0.02),
+            Size = UDim2.new(0, 60 + (i * 30), 0, 60 + (i * 30)),
+            Position = UDim2.new(1, -20 - (i * 15), 0, -20 + (i * 10)),
             AnchorPoint = Vector2.new(0.5, 0.5),
             Parent = Header
         })
-        Corner(circle, 999)
+        Corner(decorCircle, 999)
     end
     
-    -- Logo container
+    for i = 1, 3 do
+        local sparkle = Create("Frame", {
+            BackgroundColor3 = Color3.fromRGB(255, 255, 255),
+            BackgroundTransparency = 0.7,
+            Size = UDim2.new(0, 4, 0, 4),
+            Position = UDim2.new(0.1 + (i * 0.25), 0, 0.2 + (i * 0.15), 0),
+            Parent = Header
+        })
+        Corner(sparkle, 2)
+        
+        task.spawn(function()
+            while sparkle.Parent do
+                Tween(sparkle, {BackgroundTransparency = 0.3, Size = UDim2.new(0, 6, 0, 6)}, 0.8)
+                task.wait(0.8)
+                Tween(sparkle, {BackgroundTransparency = 0.9, Size = UDim2.new(0, 3, 0, 3)}, 0.8)
+                task.wait(0.8)
+            end
+        end)
+    end
+    
+    -- Logo
     local LogoContainer = Create("Frame", {
         Name = "LogoContainer",
         BackgroundColor3 = Theme.BackgroundSecondary,
-        Size = UDim2.new(0, 80, 0, 80),
-        Position = UDim2.new(0.5, 0, 1, -40),
+        Size = UDim2.new(0, 90, 0, 90),
+        Position = UDim2.new(0.5, 0, 1, -45),
         AnchorPoint = Vector2.new(0.5, 0),
+        ZIndex = 10,
         Parent = Header
     })
-    Corner(LogoContainer, 20)
-    Stroke(LogoContainer, Theme.Border, 2, 0.3)
-    CreateGlow(LogoContainer, Theme.Primary, 20, 0.8)
+    Corner(LogoContainer, 24)
+    Stroke(LogoContainer, Theme.Primary, 3, 0.3)
+    CreateGlow(LogoContainer, Theme.Primary, 25, 0.75)
+    CreateShadow(LogoContainer, 0.5, 30)
+    
+    local LogoInnerRing = Create("Frame", {
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, -16, 1, -16),
+        Position = UDim2.new(0.5, 0, 0.5, 0),
+        AnchorPoint = Vector2.new(0.5, 0.5),
+        Parent = LogoContainer
+    })
+    Corner(LogoInnerRing, 18)
+    Stroke(LogoInnerRing, Theme.Primary, 2, 0.6)
     
     if Logo then
         Create("ImageLabel", {
             Image = Logo,
+            ImageColor3 = Theme.Text,
             BackgroundTransparency = 1,
-            Size = UDim2.new(0, 44, 0, 44),
+            Size = UDim2.new(0, 48, 0, 48),
             Position = UDim2.new(0.5, 0, 0.5, 0),
             AnchorPoint = Vector2.new(0.5, 0.5),
             ScaleType = Enum.ScaleType.Fit,
+            ZIndex = 11,
             Parent = LogoContainer
         })
     else
-        CreateIcon(LogoContainer, "shield-check", UDim2.new(0, 40, 0, 40), UDim2.new(0.5, -20, 0.5, -20), Theme.Primary)
+        local defaultIcon = CreateIcon(LogoContainer, "shield-check", UDim2.new(0, 44, 0, 44), UDim2.new(0.5, -22, 0.5, -22), Theme.Primary)
+        defaultIcon.ZIndex = 11
     end
     
-    -- Title section
+    task.spawn(function()
+        while LogoContainer.Parent do
+            Tween(LogoContainer, {Size = UDim2.new(0, 94, 0, 94)}, 1.5, Enum.EasingStyle.Sine)
+            task.wait(1.5)
+            Tween(LogoContainer, {Size = UDim2.new(0, 90, 0, 90)}, 1.5, Enum.EasingStyle.Sine)
+            task.wait(1.5)
+        end
+    end)
+    
+    -- Title Section
     local TitleSection = Create("Frame", {
-        Name = "TitleSection",
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 60),
-        Position = UDim2.new(0, 0, 0, 175),
+        Size = UDim2.new(1, 0, 0, 70),
+        Position = UDim2.new(0, 0, 0, 195),
         Parent = Card
     })
     
@@ -701,59 +689,65 @@ function Stellar:CreateKeySystem(config)
         Text = Title,
         Font = Enum.Font.GothamBlack,
         TextColor3 = Theme.Text,
-        TextSize = 24,
+        TextSize = 28,
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 28),
+        Size = UDim2.new(1, 0, 0, 34),
         Position = UDim2.new(0, 0, 0, 8),
         Parent = TitleSection
     })
     
     Create("TextLabel", {
         Text = Subtitle,
-        Font = Enum.Font.Gotham,
+        Font = Enum.Font.GothamMedium,
         TextColor3 = Theme.TextMuted,
-        TextSize = 13,
+        TextSize = 14,
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 16),
-        Position = UDim2.new(0, 0, 0, 38),
+        Size = UDim2.new(1, 0, 0, 18),
+        Position = UDim2.new(0, 0, 0, 46),
         Parent = TitleSection
     })
     
-    -- Content section
+    -- Content
     local Content = Create("Frame", {
-        Name = "Content",
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, -48, 0, 260),
-        Position = UDim2.new(0, 24, 0, 245),
+        Size = UDim2.new(1, -56, 0, 290),
+        Position = UDim2.new(0, 28, 0, 270),
         Parent = Card
     })
     
-    -- Status bar
+    -- Status Bar
     local StatusBar = Create("Frame", {
-        Name = "StatusBar",
         BackgroundColor3 = Theme.Surface,
-        Size = UDim2.new(1, 0, 0, 50),
+        Size = UDim2.new(1, 0, 0, 56),
         Position = UDim2.new(0, 0, 0, 0),
         Parent = Content
     })
-    Corner(StatusBar, 12)
+    Corner(StatusBar, 14)
     Stroke(StatusBar, Theme.Border, 1, 0.5)
+    
+    local StatusDotContainer = Create("Frame", {
+        BackgroundColor3 = Theme.Warning,
+        BackgroundTransparency = 0.85,
+        Size = UDim2.new(0, 32, 0, 32),
+        Position = UDim2.new(0, 12, 0.5, -16),
+        Parent = StatusBar
+    })
+    Corner(StatusDotContainer, 10)
     
     local StatusDot = Create("Frame", {
         BackgroundColor3 = Theme.Warning,
         Size = UDim2.new(0, 10, 0, 10),
-        Position = UDim2.new(0, 16, 0.5, -5),
-        Parent = StatusBar
+        Position = UDim2.new(0.5, -5, 0.5, -5),
+        Parent = StatusDotContainer
     })
     Corner(StatusDot, 5)
     
-    -- Pulsing animation for status dot
     task.spawn(function()
         while StatusDot.Parent do
-            Tween(StatusDot, {BackgroundTransparency = 0.5}, 0.8)
-            task.wait(0.8)
-            Tween(StatusDot, {BackgroundTransparency = 0}, 0.8)
-            task.wait(0.8)
+            Tween(StatusDot, {Size = UDim2.new(0, 12, 0, 12), Position = UDim2.new(0.5, -6, 0.5, -6)}, 0.6)
+            task.wait(0.6)
+            Tween(StatusDot, {Size = UDim2.new(0, 10, 0, 10), Position = UDim2.new(0.5, -5, 0.5, -5)}, 0.6)
+            task.wait(0.6)
         end
     end)
     
@@ -761,11 +755,12 @@ function Stellar:CreateKeySystem(config)
         Text = "Waiting for license key...",
         Font = Enum.Font.GothamMedium,
         TextColor3 = Theme.TextSecondary,
-        TextSize = 12,
+        TextSize = 13,
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, -80, 1, 0),
-        Position = UDim2.new(0, 36, 0, 0),
+        Size = UDim2.new(1, -120, 1, 0),
+        Position = UDim2.new(0, 52, 0, 0),
         TextXAlignment = Enum.TextXAlignment.Left,
+        TextTruncate = Enum.TextTruncate.AtEnd,
         Parent = StatusBar
     })
     
@@ -773,79 +768,87 @@ function Stellar:CreateKeySystem(config)
         Text = "",
         Font = Enum.Font.GothamBold,
         TextColor3 = Theme.Primary,
-        TextSize = 11,
+        TextSize = 12,
         BackgroundTransparency = 1,
-        Size = UDim2.new(0, 60, 1, 0),
-        Position = UDim2.new(1, -70, 0, 0),
+        Size = UDim2.new(0, 70, 1, 0),
+        Position = UDim2.new(1, -82, 0, 0),
         TextXAlignment = Enum.TextXAlignment.Right,
         Parent = StatusBar
     })
     
-    -- Key input section
+    -- Key Input
     Create("TextLabel", {
         Text = "LICENSE KEY",
         Font = Enum.Font.GothamBold,
         TextColor3 = Theme.TextMuted,
-        TextSize = 10,
+        TextSize = 11,
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 14),
-        Position = UDim2.new(0, 0, 0, 62),
+        Size = UDim2.new(1, 0, 0, 16),
+        Position = UDim2.new(0, 0, 0, 68),
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = Content
     })
     
     local KeyInputContainer = Create("Frame", {
-        Name = "KeyInput",
         BackgroundColor3 = Theme.Surface,
-        Size = UDim2.new(1, 0, 0, 52),
-        Position = UDim2.new(0, 0, 0, 80),
+        Size = UDim2.new(1, 0, 0, 56),
+        Position = UDim2.new(0, 0, 0, 88),
         Parent = Content
     })
-    Corner(KeyInputContainer, 12)
+    Corner(KeyInputContainer, 14)
     local KeyInputStroke = Stroke(KeyInputContainer, Theme.Border, 1, 0.3)
     
-    local KeyIcon = CreateIcon(KeyInputContainer, "key", UDim2.new(0, 18, 0, 18), UDim2.new(0, 16, 0.5, -9), Theme.TextMuted)
+    local KeyIconContainer = Create("Frame", {
+        BackgroundColor3 = Theme.Primary,
+        BackgroundTransparency = 0.9,
+        Size = UDim2.new(0, 36, 0, 36),
+        Position = UDim2.new(0, 10, 0.5, -18),
+        Parent = KeyInputContainer
+    })
+    Corner(KeyIconContainer, 10)
+    
+    local KeyIcon = CreateIcon(KeyIconContainer, "key", UDim2.new(0, 18, 0, 18), UDim2.new(0.5, -9, 0.5, -9), Theme.Primary)
     
     local KeyInput = Create("TextBox", {
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, -54, 1, 0),
-        Position = UDim2.new(0, 44, 0, 0),
+        Size = UDim2.new(1, -70, 1, 0),
+        Position = UDim2.new(0, 56, 0, 0),
         Text = "",
-        PlaceholderText = "Enter your license key here...",
+        PlaceholderText = "Enter your license key...",
         PlaceholderColor3 = Theme.TextMuted,
         Font = Enum.Font.GothamMedium,
         TextColor3 = Theme.Text,
-        TextSize = 14,
+        TextSize = 15,
         TextXAlignment = Enum.TextXAlignment.Left,
         ClearTextOnFocus = false,
         Parent = KeyInputContainer
     })
     
-    -- Focus effects
     KeyInput.Focused:Connect(function()
         Tween(KeyInputContainer, {BackgroundColor3 = Theme.SurfaceHover}, 0.15)
         Tween(KeyInputStroke, {Color = Theme.Primary, Transparency = 0}, 0.15)
-        Tween(KeyIcon, {ImageColor3 = Theme.Primary}, 0.15)
+        Tween(KeyIconContainer, {BackgroundTransparency = 0.8}, 0.15)
+        Tween(KeyIcon, {ImageColor3 = Theme.PrimaryLight}, 0.15)
     end)
     
     KeyInput.FocusLost:Connect(function()
         Tween(KeyInputContainer, {BackgroundColor3 = Theme.Surface}, 0.15)
         Tween(KeyInputStroke, {Color = Theme.Border, Transparency = 0.3}, 0.15)
-        Tween(KeyIcon, {ImageColor3 = Theme.TextMuted}, 0.15)
+        Tween(KeyIconContainer, {BackgroundTransparency = 0.9}, 0.15)
+        Tween(KeyIcon, {ImageColor3 = Theme.Primary}, 0.15)
     end)
     
-    -- Validate button
+    -- Validate Button
     local ValidateBtn = Create("TextButton", {
-        Name = "ValidateBtn",
         BackgroundColor3 = Theme.Primary,
-        Size = UDim2.new(1, 0, 0, 50),
-        Position = UDim2.new(0, 0, 0, 145),
+        Size = UDim2.new(1, 0, 0, 54),
+        Position = UDim2.new(0, 0, 0, 156),
         Text = "",
         AutoButtonColor = false,
         Parent = Content
     })
-    Corner(ValidateBtn, 12)
-    CreateGlow(ValidateBtn, Theme.Primary, 15, 0.85)
+    Corner(ValidateBtn, 14)
+    CreateGlow(ValidateBtn, Theme.Primary, 20, 0.8)
     
     Create("UIGradient", {
         Color = ColorSequence.new({
@@ -862,38 +865,36 @@ function Stellar:CreateKeySystem(config)
         Parent = ValidateBtn
     })
     
-    local ValidateIcon = CreateIcon(ValidateBtnContent, "check-circle", UDim2.new(0, 18, 0, 18), UDim2.new(0.5, -60, 0.5, -9), Theme.Text)
+    local ValidateIcon = CreateIcon(ValidateBtnContent, "check-circle", UDim2.new(0, 20, 0, 20), UDim2.new(0.5, -65, 0.5, -10), Theme.Text)
     
     local ValidateBtnText = Create("TextLabel", {
         Text = "VALIDATE KEY",
         Font = Enum.Font.GothamBold,
         TextColor3 = Theme.Text,
-        TextSize = 14,
+        TextSize = 15,
         BackgroundTransparency = 1,
         Size = UDim2.new(0, 120, 1, 0),
         Position = UDim2.new(0.5, -35, 0, 0),
         Parent = ValidateBtnContent
     })
     
-    -- Hover effects
     ValidateBtn.MouseEnter:Connect(function()
-        Tween(ValidateBtn, {Size = UDim2.new(1, 4, 0, 52)}, 0.15, Enum.EasingStyle.Back)
-        ValidateBtn.Position = UDim2.new(0, -2, 0, 144)
+        Tween(ValidateBtn, {Size = UDim2.new(1, 6, 0, 58)}, 0.15, Enum.EasingStyle.Back)
+        ValidateBtn.Position = UDim2.new(0, -3, 0, 154)
     end)
     
     ValidateBtn.MouseLeave:Connect(function()
-        Tween(ValidateBtn, {Size = UDim2.new(1, 0, 0, 50), Position = UDim2.new(0, 0, 0, 145)}, 0.15)
+        Tween(ValidateBtn, {Size = UDim2.new(1, 0, 0, 54), Position = UDim2.new(0, 0, 0, 156)}, 0.15)
     end)
     
-    -- Secondary buttons row
+    -- Secondary Buttons
     local ButtonRow = Create("Frame", {
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, 0, 0, 42),
-        Position = UDim2.new(0, 0, 0, 208),
+        Size = UDim2.new(1, 0, 0, 48),
+        Position = UDim2.new(0, 0, 0, 222),
         Parent = Content
     })
     
-    -- Get Key button
     local GetKeyBtn = Create("TextButton", {
         BackgroundColor3 = Theme.Surface,
         Size = UDim2.new(0.48, 0, 1, 0),
@@ -902,19 +903,19 @@ function Stellar:CreateKeySystem(config)
         AutoButtonColor = false,
         Parent = ButtonRow
     })
-    Corner(GetKeyBtn, 10)
+    Corner(GetKeyBtn, 12)
     Stroke(GetKeyBtn, Theme.Primary, 1, 0.5)
     
-    CreateIcon(GetKeyBtn, "external-link", UDim2.new(0, 14, 0, 14), UDim2.new(0.5, -42, 0.5, -7), Theme.Primary)
+    CreateIcon(GetKeyBtn, "external-link", UDim2.new(0, 16, 0, 16), UDim2.new(0.5, -50, 0.5, -8), Theme.Primary)
     
     Create("TextLabel", {
         Text = "Get a Key",
         Font = Enum.Font.GothamMedium,
         TextColor3 = Theme.Primary,
-        TextSize = 12,
+        TextSize = 13,
         BackgroundTransparency = 1,
         Size = UDim2.new(0.6, 0, 1, 0),
-        Position = UDim2.new(0.5, -20, 0, 0),
+        Position = UDim2.new(0.5, -25, 0, 0),
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = GetKeyBtn
     })
@@ -926,7 +927,6 @@ function Stellar:CreateKeySystem(config)
         Tween(GetKeyBtn, {BackgroundColor3 = Theme.Surface}, 0.12)
     end)
     
-    -- Discord button
     local DiscordBtn = Create("TextButton", {
         BackgroundColor3 = Theme.Surface,
         Size = UDim2.new(0.48, 0, 1, 0),
@@ -935,19 +935,19 @@ function Stellar:CreateKeySystem(config)
         AutoButtonColor = false,
         Parent = ButtonRow
     })
-    Corner(DiscordBtn, 10)
+    Corner(DiscordBtn, 12)
     Stroke(DiscordBtn, Theme.Border, 1, 0.5)
     
-    CreateIcon(DiscordBtn, "message-circle", UDim2.new(0, 14, 0, 14), UDim2.new(0.5, -38, 0.5, -7), Theme.TextSecondary)
+    local DiscordIcon = CreateIcon(DiscordBtn, "message-circle", UDim2.new(0, 16, 0, 16), UDim2.new(0.5, -45, 0.5, -8), Theme.TextSecondary)
     
-    Create("TextLabel", {
+    local DiscordText = Create("TextLabel", {
         Text = "Discord",
         Font = Enum.Font.GothamMedium,
         TextColor3 = Theme.TextSecondary,
-        TextSize = 12,
+        TextSize = 13,
         BackgroundTransparency = 1,
         Size = UDim2.new(0.6, 0, 1, 0),
-        Position = UDim2.new(0.5, -16, 0, 0),
+        Position = UDim2.new(0.5, -20, 0, 0),
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = DiscordBtn
     })
@@ -959,11 +959,45 @@ function Stellar:CreateKeySystem(config)
         Tween(DiscordBtn, {BackgroundColor3 = Theme.Surface}, 0.12)
     end)
     
+    -- Game Indicator
+    local currentGameName = Games[game.PlaceId] or "Universal"
+    
+    local GameIndicator = Create("Frame", {
+        BackgroundColor3 = Theme.Surface,
+        Size = UDim2.new(1, 0, 0, 40),
+        Position = UDim2.new(0, 0, 1, -50),
+        Parent = Content
+    })
+    Corner(GameIndicator, 10)
+    
+    local GameIconBg = Create("Frame", {
+        BackgroundColor3 = Theme.Primary,
+        BackgroundTransparency = 0.9,
+        Size = UDim2.new(0, 28, 0, 28),
+        Position = UDim2.new(0, 8, 0.5, -14),
+        Parent = GameIndicator
+    })
+    Corner(GameIconBg, 8)
+    
+    CreateIcon(GameIconBg, "gamepad-2", UDim2.new(0, 14, 0, 14), UDim2.new(0.5, -7, 0.5, -7), Theme.Primary)
+    
+    Create("TextLabel", {
+        Text = currentGameName,
+        Font = Enum.Font.GothamMedium,
+        TextColor3 = Theme.Primary,
+        TextSize = 12,
+        BackgroundTransparency = 1,
+        Size = UDim2.new(1, -50, 1, 0),
+        Position = UDim2.new(0, 44, 0, 0),
+        TextXAlignment = Enum.TextXAlignment.Left,
+        Parent = GameIndicator
+    })
+    
     -- Footer
     local Footer = Create("Frame", {
         BackgroundTransparency = 1,
-        Size = UDim2.new(1, -48, 0, 30),
-        Position = UDim2.new(0, 24, 1, -40),
+        Size = UDim2.new(1, -56, 0, 30),
+        Position = UDim2.new(0, 28, 1, -40),
         Parent = Card
     })
     
@@ -971,7 +1005,7 @@ function Stellar:CreateKeySystem(config)
         Text = "Powered by Stellar Hub",
         Font = Enum.Font.Gotham,
         TextColor3 = Theme.TextMuted,
-        TextSize = 10,
+        TextSize = 11,
         BackgroundTransparency = 1,
         Size = UDim2.new(0.5, 0, 1, 0),
         TextXAlignment = Enum.TextXAlignment.Left,
@@ -982,7 +1016,7 @@ function Stellar:CreateKeySystem(config)
         Text = "v6.0",
         Font = Enum.Font.GothamMedium,
         TextColor3 = Theme.TextMuted,
-        TextSize = 10,
+        TextSize = 11,
         BackgroundTransparency = 1,
         Size = UDim2.new(0.5, 0, 1, 0),
         Position = UDim2.new(0.5, 0, 0, 0),
@@ -990,16 +1024,18 @@ function Stellar:CreateKeySystem(config)
         Parent = Footer
     })
     
-    -- Button actions
+    -- Button Functionality
     GetKeyBtn.MouseButton1Click:Connect(function()
         RippleEffect(GetKeyBtn, UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y)
         if setclipboard and GetKeyLink ~= "" then
             setclipboard(GetKeyLink)
             StatusText.Text = "Key link copied to clipboard!"
             StatusDot.BackgroundColor3 = Theme.Info
-            task.wait(2)
+            StatusDotContainer.BackgroundColor3 = Theme.Info
+            task.wait(2.5)
             StatusText.Text = "Waiting for license key..."
             StatusDot.BackgroundColor3 = Theme.Warning
+            StatusDotContainer.BackgroundColor3 = Theme.Warning
         end
     end)
     
@@ -1007,65 +1043,74 @@ function Stellar:CreateKeySystem(config)
         RippleEffect(DiscordBtn, UserInputService:GetMouseLocation().X, UserInputService:GetMouseLocation().Y)
         if setclipboard and Discord ~= "" then
             setclipboard(Discord)
-            StatusText.Text = "Discord invite copied!"
-            StatusDot.BackgroundColor3 = Theme.Info
-            task.wait(2)
-            StatusText.Text = "Waiting for license key..."
-            StatusDot.BackgroundColor3 = Theme.Warning
+            DiscordText.Text = "Copied!"
+            DiscordIcon.Image = Icons["check"]
+            DiscordIcon.ImageColor3 = Theme.Success
+            task.wait(1.5)
+            DiscordText.Text = "Discord"
+            DiscordIcon.Image = Icons["message-circle"]
+            DiscordIcon.ImageColor3 = Theme.TextSecondary
         end
     end)
     
-    -- Validation logic
+    -- Validation Logic
+    local function SetStatus(text, color, time)
+        StatusText.Text = text
+        StatusDot.BackgroundColor3 = color
+        StatusDotContainer.BackgroundColor3 = color
+        if time then
+            TimeLabel.Text = time
+        end
+    end
+    
     local function AnimateSuccess(timeRemaining, keyType)
-        StatusDot.BackgroundColor3 = Theme.Success
-        StatusText.Text = "Access granted!"
-        local _, shortTime = FormatTimeRemaining(timeRemaining)
-        TimeLabel.Text = shortTime
-        
+        local fullTime, shortTime = FormatTimeRemaining(timeRemaining)
+        SetStatus("Access granted! " .. fullTime, Theme.Success, shortTime)
         ValidateBtnText.Text = "SUCCESS"
         ValidateIcon.Image = Icons["check"]
         
-        Tween(ValidateBtn, {BackgroundColor3 = Theme.Success}, 0.2)
+        Tween(ValidateBtn:FindFirstChild("UIGradient"), {
+            Color = ColorSequence.new({
+                ColorSequenceKeypoint.new(0, Theme.Success),
+                ColorSequenceKeypoint.new(1, Color3.fromRGB(50, 180, 120))
+            })
+        }, 0.3)
         
-        task.wait(1)
+        task.wait(1.5)
         
-        -- Animate out
-        Tween(Card, {Size = UDim2.new(0, 0, 0, 0), BackgroundTransparency = 1}, 0.4, Enum.EasingStyle.Back, Enum.EasingDirection.In)
-        Tween(Background, {BackgroundTransparency = 1}, 0.5)
+        Tween(Card, {Size = UDim2.new(0, 0, 0, 0), BackgroundTransparency = 1}, 0.5, Enum.EasingStyle.Back, Enum.EasingDirection.In)
         
-        for _, child in pairs(GradientOverlay:GetChildren()) do
-            Tween(child, {BackgroundTransparency = 1}, 0.3)
+        for _, child in pairs(GradientMesh:GetChildren()) do
+            Tween(child, {BackgroundTransparency = 1}, 0.4)
         end
         
-        task.wait(0.5)
-        ScreenGui:Destroy()
+        Tween(Background, {BackgroundTransparency = 1}, 0.5)
         
+        task.wait(0.6)
+        ScreenGui:Destroy()
         OnSuccess(timeRemaining, keyType)
     end
     
     local function AnimateError(message)
-        StatusDot.BackgroundColor3 = Theme.Error
-        StatusText.Text = message or "Invalid or expired key"
+        SetStatus(message or "Invalid or expired key", Theme.Error)
         
-        -- Shake animation
         local originalPos = KeyInputContainer.Position
         for i = 1, 4 do
-            Tween(KeyInputContainer, {Position = UDim2.new(0, 8, 0, 80)}, 0.04)
+            Tween(KeyInputContainer, {Position = UDim2.new(0, 10, 0, 88)}, 0.04)
             task.wait(0.04)
-            Tween(KeyInputContainer, {Position = UDim2.new(0, -8, 0, 80)}, 0.04)
+            Tween(KeyInputContainer, {Position = UDim2.new(0, -10, 0, 88)}, 0.04)
             task.wait(0.04)
         end
         Tween(KeyInputContainer, {Position = originalPos}, 0.04)
         
-        KeyInputStroke.Color = Theme.Error
-        KeyInputStroke.Transparency = 0
+        Tween(KeyInputStroke, {Color = Theme.Error, Transparency = 0}, 0.1)
         
         task.wait(2)
         
-        KeyInputStroke.Color = Theme.Border
-        KeyInputStroke.Transparency = 0.3
-        StatusDot.BackgroundColor3 = Theme.Warning
-        StatusText.Text = "Waiting for license key..."
+        Tween(KeyInputStroke, {Color = Theme.Border, Transparency = 0.3}, 0.2)
+        SetStatus("Waiting for license key...", Theme.Warning)
+        
+        OnFailed(message)
     end
     
     ValidateBtn.MouseButton1Click:Connect(function()
@@ -1074,24 +1119,23 @@ function Stellar:CreateKeySystem(config)
         local key = KeyInput.Text
         
         if key == "" then
-            AnimateError("Please enter a key")
+            AnimateError("Please enter a license key")
             return
         end
         
         ValidateBtnText.Text = "VALIDATING..."
-        ValidateIcon.Image = Icons["refresh-cw"]
+        ValidateIcon.Image = Icons["loader"]
         
-        -- Spin animation
         local spinning = true
         task.spawn(function()
-            while spinning do
+            while spinning and ValidateIcon.Parent do
                 ValidateIcon.Rotation = ValidateIcon.Rotation + 15
                 task.wait()
             end
             ValidateIcon.Rotation = 0
         end)
         
-        task.wait(0.8)
+        task.wait(1)
         spinning = false
         
         local valid, timeOrError, keyType = ValidateKey(key)
@@ -1099,7 +1143,7 @@ function Stellar:CreateKeySystem(config)
         if valid then
             if SaveKey and writefile then
                 pcall(function()
-                    writefile("StellarKey.txt", key)
+                    writefile(KeyFileName, key)
                 end)
             end
             AnimateSuccess(timeOrError, keyType)
@@ -1107,39 +1151,38 @@ function Stellar:CreateKeySystem(config)
             ValidateBtnText.Text = "VALIDATE KEY"
             ValidateIcon.Image = Icons["check-circle"]
             AnimateError(timeOrError)
-            OnFailed(timeOrError)
         end
     end)
     
-    -- Check for saved key
+    -- Auto-load saved key
     if SaveKey and isfile and readfile then
-        if isfile("StellarKey.txt") then
-            local savedKey = readfile("StellarKey.txt")
-            if savedKey and savedKey ~= "" then
-                KeyInput.Text = savedKey
-                StatusText.Text = "Found saved key, validating..."
-                StatusDot.BackgroundColor3 = Theme.Info
-                
-                task.wait(0.5)
-                
-                local valid, timeOrError, keyType = ValidateKey(savedKey)
-                if valid then
-                    AnimateSuccess(timeOrError, keyType)
-                else
-                    StatusDot.BackgroundColor3 = Theme.Warning
-                    StatusText.Text = "Saved key expired, enter new key"
+        task.spawn(function()
+            if isfile(KeyFileName) then
+                local savedKey = readfile(KeyFileName)
+                if savedKey and savedKey ~= "" then
+                    KeyInput.Text = savedKey
+                    SetStatus("Found saved key, validating...", Theme.Info)
+                    task.wait(0.8)
+                    local valid, timeOrError, keyType = ValidateKey(savedKey)
+                    if valid then
+                        AnimateSuccess(timeOrError, keyType)
+                    else
+                        SetStatus("Saved key expired, please enter new key", Theme.Warning)
+                    end
                 end
             end
-        end
+        end)
     end
     
     return {
-        SetStatus = function(text, color)
-            StatusText.Text = text
-            if color then StatusDot.BackgroundColor3 = color end
+        SetStatus = function(text, color, time)
+            SetStatus(text, color or Theme.Warning, time)
+        end,
+        SetKey = function(key)
+            KeyInput.Text = key
         end,
         Close = function()
-            Tween(Card, {Size = UDim2.new(0, 0, 0, 0)}, 0.3)
+            Tween(Card, {Size = UDim2.new(0, 0, 0, 0)}, 0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In)
             Tween(Background, {BackgroundTransparency = 1}, 0.3)
             task.wait(0.35)
             ScreenGui:Destroy()
@@ -1157,15 +1200,13 @@ function Stellar:CreateWindow(config)
     local Title = config.Title or "Stellar Hub"
     local Subtitle = config.Subtitle or "v6.0"
     local Logo = config.Logo or nil
-    local Size = config.Size or UDim2.new(0, 850, 0, 500)
+    local Size = config.Size or UDim2.new(0, 850, 0, 520)
     local ToggleKey = config.ToggleKey or Enum.KeyCode.RightControl
     local SearchEnabled = config.Search ~= false
     local ConfigName = config.ConfigName or "StellarConfig"
     
-    -- Initialize config
     local Config = ConfigSystem:Init(ConfigName)
     
-    -- Cleanup
     if CoreGui:FindFirstChild("StellarHub") then
         CoreGui.StellarHub:Destroy()
     end
@@ -1183,7 +1224,7 @@ function Stellar:CreateWindow(config)
     local Pages = {}
     local AllElements = {}
     
-    -- Main frame
+    -- Main Frame
     local MainFrame = Create("Frame", {
         Name = "Main",
         BackgroundColor3 = Theme.Background,
@@ -1196,7 +1237,6 @@ function Stellar:CreateWindow(config)
     Corner(MainFrame, 12)
     CreateShadow(MainFrame, 0.4, 60)
     
-    -- Animate in
     Tween(MainFrame, {Size = Size}, 0.5, Enum.EasingStyle.Back)
     
     -- Sidebar
@@ -1209,7 +1249,6 @@ function Stellar:CreateWindow(config)
     })
     Corner(Sidebar, 12)
     
-    -- Fix sidebar corners
     Create("Frame", {
         BackgroundColor3 = Theme.BackgroundSecondary,
         Size = UDim2.new(0, 15, 1, 0),
@@ -1218,7 +1257,6 @@ function Stellar:CreateWindow(config)
         Parent = Sidebar
     })
     
-    -- Sidebar border
     Create("Frame", {
         BackgroundColor3 = Theme.Border,
         Size = UDim2.new(0, 1, 1, -24),
@@ -1237,7 +1275,6 @@ function Stellar:CreateWindow(config)
     })
     MakeDraggable(Header, MainFrame)
     
-    -- Logo
     local LogoFrame = Create("Frame", {
         Name = "Logo",
         BackgroundColor3 = Theme.Primary,
@@ -1271,7 +1308,6 @@ function Stellar:CreateWindow(config)
         CreateIcon(LogoFrame, "sparkles", UDim2.new(0, 22, 0, 22), UDim2.new(0.5, -11, 0.5, -11), Theme.Text)
     end
     
-    -- Title
     Create("TextLabel", {
         Text = Title,
         Font = Enum.Font.GothamBold,
@@ -1296,11 +1332,11 @@ function Stellar:CreateWindow(config)
         Parent = Header
     })
     
-    -- Search (optional)
     local SearchYOffset = 78
+    local SearchContainer, SearchBox, SearchResults
     
     if SearchEnabled then
-        local SearchContainer = Create("Frame", {
+        SearchContainer = Create("Frame", {
             Name = "Search",
             BackgroundColor3 = Theme.Surface,
             Size = UDim2.new(1, -32, 0, 36),
@@ -1312,7 +1348,7 @@ function Stellar:CreateWindow(config)
         
         CreateIcon(SearchContainer, "search", UDim2.new(0, 14, 0, 14), UDim2.new(0, 12, 0.5, -7), Theme.TextMuted)
         
-        local SearchInput = Create("TextBox", {
+        SearchBox = Create("TextBox", {
             BackgroundTransparency = 1,
             Size = UDim2.new(1, -40, 1, 0),
             Position = UDim2.new(0, 32, 0, 0),
@@ -1327,8 +1363,7 @@ function Stellar:CreateWindow(config)
             Parent = SearchContainer
         })
         
-        -- Search results dropdown
-        local SearchResults = Create("Frame", {
+        SearchResults = Create("Frame", {
             Name = "SearchResults",
             BackgroundColor3 = Theme.Surface,
             Size = UDim2.new(1, -32, 0, 0),
@@ -1381,10 +1416,9 @@ function Stellar:CreateWindow(config)
             Parent = NoResults
         })
         
-        SearchInput:GetPropertyChangedSignal("Text"):Connect(function()
-            local text = string.lower(SearchInput.Text)
+        SearchBox:GetPropertyChangedSignal("Text"):Connect(function()
+            local text = string.lower(SearchBox.Text)
             
-            -- Clear old results
             for _, child in pairs(ResultsScroll:GetChildren()) do
                 if child:IsA("TextButton") then
                     child:Destroy()
@@ -1465,7 +1499,6 @@ function Stellar:CreateWindow(config)
                     end)
                     ResultBtn.MouseButton1Click:Connect(function()
                         if Tabs[elem.Tab] then
-                            -- Switch tab
                             for name, data in pairs(Tabs) do
                                 Tween(data.Button, {BackgroundTransparency = 1}, 0.12)
                                 Tween(data.Indicator, {Size = UDim2.new(0, 3, 0, 0)}, 0.12)
@@ -1487,7 +1520,7 @@ function Stellar:CreateWindow(config)
                                 Pages[elem.Tab].Visible = true
                             end
                             
-                            SearchInput.Text = ""
+                            SearchBox.Text = ""
                             SearchResults.Visible = false
                         end
                     end)
@@ -1500,7 +1533,6 @@ function Stellar:CreateWindow(config)
         SearchYOffset = SearchYOffset + 48
     end
     
-    -- Navigation label
     Create("TextLabel", {
         Text = "NAVIGATION",
         Font = Enum.Font.GothamBold,
@@ -1513,7 +1545,6 @@ function Stellar:CreateWindow(config)
         Parent = Sidebar
     })
     
-    -- Tab container
     local TabContainer = Create("ScrollingFrame", {
         Name = "Tabs",
         BackgroundTransparency = 1,
@@ -1535,7 +1566,7 @@ function Stellar:CreateWindow(config)
         TabContainer.CanvasSize = UDim2.new(0, 0, 0, TabLayout.AbsoluteContentSize.Y + 20)
     end)
     
-    -- User info
+    -- User Info
     local UserFrame = Create("Frame", {
         Name = "User",
         BackgroundColor3 = Theme.Surface,
@@ -1580,7 +1611,7 @@ function Stellar:CreateWindow(config)
         Parent = UserFrame
     })
     
-    -- Content area
+    -- Content Area
     local Content = Create("Frame", {
         Name = "Content",
         BackgroundTransparency = 1,
@@ -1589,7 +1620,7 @@ function Stellar:CreateWindow(config)
         Parent = MainFrame
     })
     
-    -- Top bar
+    -- Top Bar
     local TopBar = Create("Frame", {
         Name = "TopBar",
         BackgroundTransparency = 1,
@@ -1600,7 +1631,7 @@ function Stellar:CreateWindow(config)
     
     local PageTitle = Create("TextLabel", {
         Name = "PageTitle",
-        Text = "Dashboard",
+        Text = "Home",
         Font = Enum.Font.GothamBold,
         TextColor3 = Theme.Text,
         TextSize = 18,
@@ -1611,7 +1642,7 @@ function Stellar:CreateWindow(config)
         Parent = TopBar
     })
     
-    -- Window controls
+    -- Controls
     local Controls = Create("Frame", {
         BackgroundTransparency = 1,
         Size = UDim2.new(0, 70, 0, 30),
@@ -1634,7 +1665,7 @@ function Stellar:CreateWindow(config)
         Parent = Controls
     })
     Corner(MinimizeBtn, 8)
-    CreateIcon(MinimizeBtn, "minus", UDim2.new(0, 14, 0, 14), UDim2.new(0.5, -7, 0.5, -7), Theme.TextSecondary)
+        CreateIcon(MinimizeBtn, "minus", UDim2.new(0, 14, 0, 14), UDim2.new(0.5, -7, 0.5, -7), Theme.TextSecondary)
     
     local CloseBtn = Create("TextButton", {
         BackgroundColor3 = Theme.Surface,
@@ -1666,7 +1697,7 @@ function Stellar:CreateWindow(config)
         ScreenGui:Destroy()
     end)
     
-    -- Page container
+    -- Page Container
     local PageContainer = Create("Frame", {
         Name = "Pages",
         BackgroundTransparency = 1,
@@ -1676,7 +1707,7 @@ function Stellar:CreateWindow(config)
         Parent = Content
     })
     
-    -- Toggle button
+    -- Toggle Button
     local ToggleBtn = Create("TextButton", {
         Name = "Toggle",
         BackgroundColor3 = Theme.Primary,
@@ -1706,7 +1737,7 @@ function Stellar:CreateWindow(config)
             ImageColor3 = Theme.Text,
             BackgroundTransparency = 1,
             Size = UDim2.new(0, 26, 0, 26),
-                        Position = UDim2.new(0.5, 0, 0.5, 0),
+            Position = UDim2.new(0.5, 0, 0.5, 0),
             AnchorPoint = Vector2.new(0.5, 0.5),
             ScaleType = Enum.ScaleType.Fit,
             Parent = ToggleBtn
@@ -1722,7 +1753,6 @@ function Stellar:CreateWindow(config)
         Tween(ToggleBtn, {Size = UDim2.new(0, 52, 0, 52), Position = UDim2.new(0, 20, 0.5, -26)}, 0.12)
     end)
     
-    -- Minimize/Maximize functions
     local function Minimize()
         Minimized = true
         Tween(MainFrame, {Size = UDim2.new(0, 0, 0, 0)}, 0.25, Enum.EasingStyle.Back, Enum.EasingDirection.In)
@@ -1754,7 +1784,7 @@ function Stellar:CreateWindow(config)
         end
     end)
     
-    -- Notification container
+    -- Notification Container
     local NotifContainer = Create("Frame", {
         Name = "Notifications",
         BackgroundTransparency = 1,
@@ -1770,7 +1800,7 @@ function Stellar:CreateWindow(config)
         Parent = NotifContainer
     })
     
-    -- Switch tab function
+    -- Switch Tab Function
     local function SwitchTab(tabName)
         for name, data in pairs(Tabs) do
             Tween(data.Button, {BackgroundTransparency = 1}, 0.12)
@@ -1833,16 +1863,13 @@ function Stellar:CreateWindow(config)
         Stroke(Notif, color, 1, 0.5)
         CreateShadow(Notif, 0.6, 20)
         
-        -- Accent bar
         Create("Frame", {
             BackgroundColor3 = color,
             Size = UDim2.new(0, 4, 1, 0),
             BorderSizePixel = 0,
             Parent = Notif
         })
-        Corner(Notif:FindFirstChild("Frame"), 2)
         
-        -- Icon
         local IconBg = Create("Frame", {
             BackgroundColor3 = color,
             BackgroundTransparency = 0.9,
@@ -1879,7 +1906,6 @@ function Stellar:CreateWindow(config)
             Parent = Notif
         })
         
-        -- Progress bar
         local ProgressBar = Create("Frame", {
             BackgroundColor3 = color,
             BackgroundTransparency = 0.7,
@@ -1889,10 +1915,7 @@ function Stellar:CreateWindow(config)
             Parent = Notif
         })
         
-        -- Animate in
         Tween(Notif, {Size = UDim2.new(1, 0, 0, 72)}, 0.3, Enum.EasingStyle.Back)
-        
-        -- Progress animation
         Tween(ProgressBar, {Size = UDim2.new(0, 0, 0, 3)}, NotifDuration, Enum.EasingStyle.Linear)
         
         task.delay(NotifDuration, function()
@@ -1911,7 +1934,6 @@ function Stellar:CreateWindow(config)
         local TabName = options.Title or options.Name or "Tab"
         local TabIcon = options.Icon or "folder"
         
-        -- Create tab button
         local TabBtn = Create("TextButton", {
             Name = TabName,
             BackgroundColor3 = Theme.Primary,
@@ -1952,7 +1974,6 @@ function Stellar:CreateWindow(config)
             Label = Label
         }
         
-        -- Create page
         local Page = Create("ScrollingFrame", {
             Name = TabName,
             BackgroundTransparency = 1,
@@ -1978,7 +1999,6 @@ function Stellar:CreateWindow(config)
         
         Pages[TabName] = Page
         
-        -- Select first tab
         if not CurrentTab then
             SwitchTab(TabName)
         end
@@ -2017,7 +2037,6 @@ function Stellar:CreateWindow(config)
             local IsOpened = options.Opened ~= false
             
             if IsBox then
-                -- Collapsible section
                 local SectionFrame = Create("Frame", {
                     Name = SectionTitle,
                     BackgroundColor3 = Theme.Surface,
@@ -2096,7 +2115,6 @@ function Stellar:CreateWindow(config)
                 
                 task.defer(UpdateSectionSize)
                 
-                -- Section element methods
                 local Section = {}
                 
                 function Section:Button(opts)
@@ -2123,10 +2141,6 @@ function Stellar:CreateWindow(config)
                     return Tab:_CreateKeybind(opts, SectionContent)
                 end
                 
-                function Section:ColorPicker(opts)
-                    return Tab:_CreateColorPicker(opts, SectionContent)
-                end
-                
                 function Section:Paragraph(opts)
                     return Tab:_CreateParagraph(opts, SectionContent)
                 end
@@ -2141,7 +2155,6 @@ function Stellar:CreateWindow(config)
                 
                 return Section
             else
-                -- Simple divider section
                 local SectionDivider = Create("Frame", {
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, 0, 0, 28),
@@ -2198,7 +2211,7 @@ function Stellar:CreateWindow(config)
             
             table.insert(AllElements, {Name = ButtonTitle, Tab = TabName, Type = "Button"})
             
-            local height = ButtonDesc and 52 or 40
+            local height = ButtonDesc and 56 or 44
             
             local Button = Create("TextButton", {
                 BackgroundColor3 = Theme.Surface,
@@ -2217,7 +2230,7 @@ function Stellar:CreateWindow(config)
                 TextSize = 13,
                 BackgroundTransparency = 1,
                 Size = UDim2.new(1, -50, 0, 16),
-                Position = UDim2.new(0, 14, 0, ButtonDesc and 10 or 12),
+                Position = UDim2.new(0, 14, 0, ButtonDesc and 12 or 14),
                 TextXAlignment = Enum.TextXAlignment.Left,
                 Parent = Button
             })
@@ -2230,7 +2243,7 @@ function Stellar:CreateWindow(config)
                     TextSize = 11,
                     BackgroundTransparency = 1,
                     Size = UDim2.new(1, -50, 0, 14),
-                    Position = UDim2.new(0, 14, 0, 28),
+                    Position = UDim2.new(0, 14, 0, 30),
                     TextXAlignment = Enum.TextXAlignment.Left,
                     Parent = Button
                 })
@@ -2252,7 +2265,7 @@ function Stellar:CreateWindow(config)
             end)
         end
         
-        -- Toggle (Improved design)
+        -- Toggle
         function Tab:_CreateToggle(options, parent)
             options = options or {}
             local ToggleTitle = options.Title or options.Name or "Toggle"
@@ -2263,7 +2276,6 @@ function Stellar:CreateWindow(config)
             
             table.insert(AllElements, {Name = ToggleTitle, Tab = TabName, Type = "Toggle"})
             
-            -- Load from config
             if ConfigKey then
                 local saved = Config:Get(ConfigKey)
                 if saved ~= nil then
@@ -2310,7 +2322,6 @@ function Stellar:CreateWindow(config)
                 })
             end
             
-            -- Toggle switch (pill design)
             local SwitchBg = Create("Frame", {
                 BackgroundColor3 = Toggled and Theme.Primary or Theme.ToggleOff,
                 Size = UDim2.new(0, 44, 0, 24),
@@ -2328,7 +2339,6 @@ function Stellar:CreateWindow(config)
             Corner(SwitchKnob, 9)
             CreateShadow(SwitchKnob, 0.7, 8)
             
-            -- Check icon inside knob
             local CheckIcon = CreateIcon(SwitchKnob, "check", UDim2.new(0, 10, 0, 10), UDim2.new(0.5, -5, 0.5, -5), Theme.Primary)
             CheckIcon.ImageTransparency = Toggled and 0 or 1
             
@@ -2361,7 +2371,6 @@ function Stellar:CreateWindow(config)
                 Update()
             end)
             
-            -- Initial callback
             if Toggled then
                 task.defer(function()
                     pcall(ToggleCallback, Toggled)
@@ -2379,7 +2388,7 @@ function Stellar:CreateWindow(config)
             }
         end
         
-        -- Slider (Improved design)
+        -- Slider
         function Tab:_CreateSlider(options, parent)
             options = options or {}
             local SliderTitle = options.Title or options.Name or "Slider"
@@ -2394,7 +2403,6 @@ function Stellar:CreateWindow(config)
             
             table.insert(AllElements, {Name = SliderTitle, Tab = TabName, Type = "Slider"})
             
-            -- Load from config
             if ConfigKey then
                 local saved = Config:Get(ConfigKey)
                 if saved ~= nil then
@@ -2403,7 +2411,7 @@ function Stellar:CreateWindow(config)
             end
             
             local Value = SliderDefault
-            local height = SliderDesc and 72 or 60
+            local height = SliderDesc and 76 or 64
             
             local SliderFrame = Create("Frame", {
                 BackgroundColor3 = Theme.Surface,
@@ -2439,15 +2447,14 @@ function Stellar:CreateWindow(config)
                 })
             end
             
-            -- Value display
             local ValueBg = Create("Frame", {
                 BackgroundColor3 = Theme.Primary,
                 BackgroundTransparency = 0.9,
-                Size = UDim2.new(0, 50, 0, 24),
-                Position = UDim2.new(1, -64, 0, SliderDesc and 10 or 10),
+                Size = UDim2.new(0, 55, 0, 26),
+                Position = UDim2.new(1, -69, 0, SliderDesc and 10 or 9),
                 Parent = SliderFrame
             })
-            Corner(ValueBg, 6)
+            Corner(ValueBg, 8)
             
             local ValueLabel = Create("TextLabel", {
                 Text = tostring(Value) .. SliderSuffix,
@@ -2459,7 +2466,6 @@ function Stellar:CreateWindow(config)
                 Parent = ValueBg
             })
             
-            -- Slider track
             local SliderTrack = Create("TextButton", {
                 BackgroundColor3 = Theme.SliderTrack,
                 Size = UDim2.new(1, -28, 0, 8),
@@ -2470,7 +2476,6 @@ function Stellar:CreateWindow(config)
             })
             Corner(SliderTrack, 4)
             
-            -- Fill
             local Fill = Create("Frame", {
                 BackgroundColor3 = Theme.Primary,
                 Size = UDim2.new((Value - SliderMin) / (SliderMax - SliderMin), 0, 1, 0),
@@ -2486,7 +2491,6 @@ function Stellar:CreateWindow(config)
                 Parent = Fill
             })
             
-            -- Knob
             local Knob = Create("Frame", {
                 BackgroundColor3 = Theme.Text,
                 Size = UDim2.new(0, 18, 0, 18),
@@ -2567,7 +2571,6 @@ function Stellar:CreateWindow(config)
             
             table.insert(AllElements, {Name = DropdownTitle, Tab = TabName, Type = "Dropdown"})
             
-            -- Load from config
             if ConfigKey then
                 local saved = Config:Get(ConfigKey)
                 if saved ~= nil then
@@ -2646,7 +2649,6 @@ function Stellar:CreateWindow(config)
             
             local Arrow = CreateIcon(DropdownBtn, "chevron-down", UDim2.new(0, 14, 0, 14), UDim2.new(1, -28, 0.5, -7), Theme.TextMuted)
             
-            -- Options container
             local OptionsContainer = Create("Frame", {
                 BackgroundTransparency = 1,
                 Size = UDim2.new(1, 0, 0, #DropdownOptions * 36 + 12),
@@ -2744,7 +2746,6 @@ function Stellar:CreateWindow(config)
                 table.insert(optionRefs, CreateOption(opt))
             end
             
-            -- Update initial state
             for _, ref in pairs(optionRefs) do
                 ref.Update()
             end
@@ -2834,7 +2835,7 @@ function Stellar:CreateWindow(config)
             
             local InputBox = Create("TextBox", {
                 BackgroundColor3 = Theme.SurfaceHover,
-                Size = UDim2.new(0.48, -20, 0, 30),
+                Size = UDim2.new(0.48, -16, 0, 30),
                 Position = UDim2.new(0.52, 0, 0.5, -15),
                 Text = ConfigKey and Config:Get(ConfigKey, "") or "",
                 PlaceholderText = InputPlaceholder,
@@ -2967,7 +2968,6 @@ function Stellar:CreateWindow(config)
                         KeyLabel.Text = CurrentKey.Name
                         Tween(KeyDisplay, {BackgroundTransparency = 0.9}, 0.12)
                         Listening = false
-                        
                         if ConfigKey then Config:Set(ConfigKey, CurrentKey.Name) end
                     end
                 elseif not processed and input.KeyCode == CurrentKey then
@@ -3053,7 +3053,7 @@ function Stellar:CreateWindow(config)
             }
         end
         
-        -- Note (colored info box)
+        -- Note
         function Tab:_CreateNote(options, parent)
             options = options or {}
             local NoteContent = options.Content or options.Text or ""
@@ -3067,8 +3067,15 @@ function Stellar:CreateWindow(config)
                 Error = Theme.Error
             }
             
+            local TypeIcons = {
+                Info = "info",
+                Success = "check-circle",
+                Warning = "alert-triangle",
+                Error = "x-circle"
+            }
+            
             local color = TypeColors[NoteType] or Theme.Info
-            local iconName = NoteIcon or (NoteType == "Info" and "info" or NoteType == "Success" and "check-circle" or NoteType == "Warning" and "alert-triangle" or "x-circle")
+            local iconName = NoteIcon or TypeIcons[NoteType] or "info"
             
             local Note = Create("Frame", {
                 BackgroundColor3 = color,
@@ -3081,11 +3088,11 @@ function Stellar:CreateWindow(config)
             Stroke(Note, color, 1, 0.5)
             Padding(Note, 12, 14, 14, 12)
             
-            -- Accent bar
             Create("Frame", {
                 BackgroundColor3 = color,
                 Size = UDim2.new(0, 4, 1, -24),
                 Position = UDim2.new(0, 0, 0, 12),
+                BorderSizePixel = 0,
                 Parent = Note
             })
             
@@ -3116,7 +3123,7 @@ function Stellar:CreateWindow(config)
         
         -- Divider
         function Tab:_CreateDivider(parent)
-            local Divider = Create("Frame", {
+            Create("Frame", {
                 BackgroundColor3 = Theme.Border,
                 Size = UDim2.new(1, 0, 0, 1),
                 Parent = parent or Page
