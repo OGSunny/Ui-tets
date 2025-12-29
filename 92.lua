@@ -9,18 +9,6 @@ if not LPH_OBFUSCATED then
     ClonedPrint = print
 end
 
-if LPH_OBFUSCATED then
-    ClonedPrint = print
-    print = function(...)end
-    warn = function(...)end
-
-    local PreventSkidsToMakeGayThings = loadstring(game:HttpGet("https://raw.githubusercontent.com/Hosvile/InfiniX/a40a158d22fd4f4733beb2f67379866ccb17906f/Library/Anti/AntiDebug/main.lua", true))()
-
-    if not (type(PreventSkidsToMakeGayThings) == "table") then
-    LPH_CRASH()
-    end
-end
-
 --[[Please Commnet When you are about to upload]]--
 function RoleChecker()
     if string.find(LRM_UserNote, "Ad Reward") then
