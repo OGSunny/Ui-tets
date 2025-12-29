@@ -21,10 +21,6 @@ if LPH_OBFUSCATED then
     end
 end
 
-if not isfile('Lunor_Trans.png') then
-    writefile("Lunor_Trans.png", game:HttpGet('https://github.com/Just3itx/Backup/blob/main/Lunor_Trans.png?raw=true'))
-end
-
 --[[Please Commnet When you are about to upload]]--
 function RoleChecker()
     if string.find(LRM_UserNote, "Ad Reward") then
